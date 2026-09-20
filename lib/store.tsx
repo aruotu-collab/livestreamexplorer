@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { LIVE_PLATFORMS } from "./platforms";
 import type { Agent, Category, CollectionItem, Plan, UserState, WatchItem } from "./types";
 
 const KEY = "lse-user-v1";
@@ -31,7 +32,7 @@ function demoUser(overrides: Partial<UserState> = {}): UserState {
         id: "agent-demo",
         name: "PSA 10 Pikachus under £150",
         query: "Pikachu PSA 10",
-        platforms: ["ebay", "whatnot"],
+        platforms: LIVE_PLATFORMS.map((platform) => platform.slug),
         category: "pokemon",
         maxPrice: 150,
         grade: "PSA 10",

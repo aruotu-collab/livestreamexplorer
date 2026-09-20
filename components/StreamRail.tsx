@@ -3,6 +3,7 @@ import { StreamCard } from "./StreamCard";
 import type { Stream, UserState } from "@/lib/types";
 
 export function StreamRail({
+  id,
   title,
   eyebrow,
   href,
@@ -10,6 +11,7 @@ export function StreamRail({
   user,
   matches,
 }: {
+  id?: string;
   title: string;
   eyebrow?: string;
   href?: string;
@@ -19,7 +21,7 @@ export function StreamRail({
 }) {
   if (!streams.length) return null;
   return (
-    <section className="space-y-4">
+    <section id={id} className="scroll-mt-48 space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div>
           {eyebrow && <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">{eyebrow}</p>}

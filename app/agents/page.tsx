@@ -4,7 +4,9 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { agentMatches } from "@/lib/intelligence";
 import { Boot, useStore } from "@/lib/store";
+import { useLiveFeed } from "@/lib/live-feed";
 import { formatWhen, gbp } from "@/lib/time";
+import { LIVE_PLATFORMS, livePlatformSentence, platformLabel } from "@/lib/platforms";
 import type { Category, Platform } from "@/lib/types";
 
 export default function AgentsPage() {
@@ -17,6 +19,7 @@ export default function AgentsPage() {
 
 function AgentsInner() {
   const { user, addAgent, removeAgent, agentLimit } = useStore();
+  const { clock, timeZone } = useLiveFeed();
   const [error, setError] = useState("");
   const matches = user ? agentMatches(user) : [];
 
@@ -26,8 +29,8 @@ function AgentsInner() {
     const result = addAgent({
       name: String(data.get("name") || data.get("query")),
       query: String(data.get("query")),
-      platforms: String(data.get("platform") || "both") === "both"
-        ? (["ebay", "whatnot"] as Platform[])
+      platforms: String(data.get("platform") || "all") === "all"
+        ? LIVE_PLATFORMS.map((platform) => platform.slug)
         : ([String(data.get("platform"))] as Platform[]),
       category: (data.get("category") as Category) || undefined,
       maxPrice: data.get("maxPrice") ? Number(data.get("maxPrice")) : undefined,
@@ -45,7 +48,7 @@ function AgentsInner() {
     return (
       <Gate
         title="Watch Agents watch the market for you."
-        body="Write what you want once. We monitor upcoming inventories, titles and descriptions across eBay Live and Whatnot."
+        body={`Write what you want once. We monitor upcoming inventories, titles and descriptions across ${livePlatformSentence()}.`}
       />
     );
   }
@@ -66,10 +69,13 @@ function AgentsInner() {
       <form onSubmit={onSubmit} className="grid gap-3 rounded-3xl border border-white/8 bg-ink-900 p-6 md:grid-cols-2">
         <input name="name" placeholder="Agent name — e.g. Cheap PSA 10 Pikachus" required />
         <input name="query" placeholder="Find… PSA 10 Pikachu under £150" required />
-        <select name="platform" defaultValue="both">
-          <option value="both">eBay Live + Whatnot</option>
-          <option value="whatnot">Whatnot only</option>
-          <option value="ebay">eBay Live only</option>
+        <select name="platform" defaultValue="all">
+          <option value="all">All live platforms</option>
+          {LIVE_PLATFORMS.map((platform) => (
+            <option key={platform.slug} value={platform.slug}>
+              {platform.label} only
+            </option>
+          ))}
         </select>
         <select name="category" defaultValue="">
           <option value="">Any category</option>
@@ -121,7 +127,7 @@ function AgentsInner() {
               <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-teal">{match.agent.name}</p>
               <p className="mt-1 font-display text-2xl">{match.items[0]?.title ?? match.stream.title}</p>
               <p className="text-sm text-paper-200/55">
-                {match.stream.platform === "ebay" ? "eBay Live" : "Whatnot"} · {formatWhen(match.stream.startsAt)}
+                {platformLabel(match.stream.platform)} · {formatWhen(match.stream.startsAt, clock, timeZone)}
                 {match.items[0] && ` · start ${gbp(match.items[0].startingPrice)} · median ${gbp(match.items[0].marketMedian)}`}
               </p>
               {match.dealPct !== null && match.dealPct < -8 && (

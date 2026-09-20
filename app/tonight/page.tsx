@@ -17,7 +17,7 @@ export default function TonightPage() {
 
 function TonightInner() {
   const { user } = useStore();
-  const { tonight: all } = useLiveFeed();
+  const { tonight: all, timeZone } = useLiveFeed();
   const picks = user ? tonightPicks(user) : [];
 
   return (
@@ -49,7 +49,7 @@ function TonightInner() {
               className="grid gap-4 rounded-2xl border border-white/8 bg-ink-900 p-5 transition hover:border-gold/30 md:grid-cols-[140px_1fr_auto]"
             >
               <div>
-                <p className="font-display text-3xl">{formatClock(stream.startsAt)}</p>
+                <p className="font-display text-3xl">{formatClock(stream.startsAt, timeZone)}</p>
                 <p className="text-xs uppercase text-paper-200/45">{stream.platform}</p>
               </div>
               <div>

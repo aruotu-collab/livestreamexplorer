@@ -1,4 +1,4 @@
-export type Platform = "ebay" | "whatnot";
+export type Platform = "ebay" | "whatnot" | "youtube" | "tiktok";
 export type StreamStatus = "live" | "soon" | "upcoming" | "ended";
 export type Plan = "free" | "pro" | "collector";
 

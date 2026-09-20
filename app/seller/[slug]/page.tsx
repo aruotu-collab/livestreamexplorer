@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { StreamCard } from "@/components/StreamCard";
 import { sellerStats } from "@/lib/intelligence";
+import { platformLabel } from "@/lib/platforms";
 import { useStore } from "@/lib/store";
 
 export default function SellerPage() {
@@ -16,7 +17,7 @@ export default function SellerPage() {
     <div className="space-y-8">
       <header className="rounded-3xl border border-white/8 bg-ink-900 p-8">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">
-          {seller.platform === "ebay" ? "eBay Live" : "Whatnot"} seller
+          {platformLabel(seller.platform)} seller
         </p>
         <h1 className="mt-2 font-display text-5xl">{seller.name}</h1>
         <p className="mt-4 max-w-2xl text-paper-200/70">{seller.bio}</p>

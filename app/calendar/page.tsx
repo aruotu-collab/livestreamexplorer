@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { CATEGORIES } from "@/lib/catalog";
+import { LIVE_PLATFORMS } from "@/lib/platforms";
 import { useLiveFeed } from "@/lib/live-feed";
 import { useStore } from "@/lib/store";
-import { dayKey, formatDay, isToday, isTomorrow, isWeekend } from "@/lib/time";
+import { byStartTime, dayKey, formatDay, isToday, isTomorrow, isWeekend } from "@/lib/time";
 import type { Category, Platform } from "@/lib/types";
 import { StreamCard } from "@/components/StreamCard";
 
@@ -12,7 +13,7 @@ const DAYS = ["today", "tomorrow", "weekend", "7days"] as const;
 
 export default function CalendarPage() {
   const { user } = useStore();
-  const { week } = useLiveFeed();
+  const { week, clock, timeZone } = useLiveFeed();
   const [day, setDay] = useState<(typeof DAYS)[number]>("7days");
   const [platform, setPlatform] = useState<Platform | "all">("all");
   const [category, setCategory] = useState<Category | "all">("all");
@@ -21,15 +22,15 @@ export default function CalendarPage() {
     return week.filter((stream) => {
       if (platform !== "all" && stream.platform !== platform) return false;
       if (category !== "all" && stream.category !== category) return false;
-      if (day === "today" && !isToday(stream.startsAt)) return false;
-      if (day === "tomorrow" && !isTomorrow(stream.startsAt)) return false;
+      if (day === "today" && !isToday(stream.startsAt, clock, timeZone)) return false;
+      if (day === "tomorrow" && !isTomorrow(stream.startsAt, clock, timeZone)) return false;
       if (day === "weekend" && !isWeekend(stream.startsAt)) return false;
       return true;
     });
-  }, [day, platform, category, week]);
+  }, [day, platform, category, week, clock, timeZone]);
 
-  const groups = filtered.reduce<Record<string, typeof filtered>>((acc, stream) => {
-    const key = dayKey(stream.startsAt);
+  const groups = [...filtered].sort(byStartTime).reduce<Record<string, typeof filtered>>((acc, stream) => {
+    const key = dayKey(stream.startsAt, timeZone);
     acc[key] = acc[key] || [];
     acc[key].push(stream);
     return acc;
@@ -51,9 +52,16 @@ export default function CalendarPage() {
             {value === "7days" ? "7 days" : value}
           </button>
         ))}
-        {(["all", "whatnot", "ebay"] as const).map((value) => (
-          <button key={value} onClick={() => setPlatform(value)} className={`chip ${platform === value ? "border-teal/50 text-teal" : ""}`}>
-            {value === "all" ? "All platforms" : value === "ebay" ? "eBay Live" : "Whatnot"}
+        <button onClick={() => setPlatform("all")} className={`chip ${platform === "all" ? "border-teal/50 text-teal" : ""}`}>
+          All platforms
+        </button>
+        {LIVE_PLATFORMS.map((item) => (
+          <button
+            key={item.slug}
+            onClick={() => setPlatform(item.slug)}
+            className={`chip ${platform === item.slug ? "border-teal/50 text-teal" : ""}`}
+          >
+            {item.label}
           </button>
         ))}
       </div>
@@ -73,7 +81,7 @@ export default function CalendarPage() {
       {Object.entries(groups).map(([key, list]) => (
         <section key={key} className="space-y-4">
           <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-3xl">{formatDay(list[0].startsAt)}</h2>
+            <h2 className="font-display text-3xl">{formatDay(list[0].startsAt, timeZone)}</h2>
             <p className="text-sm text-paper-200/45">{list.length} shows</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

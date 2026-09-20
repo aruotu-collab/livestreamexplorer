@@ -1,3 +1,4 @@
+import { eventUrlForPlatform } from "./platforms";
 import type { Category, Platform, Seller, Stream, StreamItem } from "./types";
 
 export const CATEGORIES: { slug: Category; label: string; blurb: string }[] = [
@@ -14,6 +15,10 @@ export const CATEGORIES: { slug: Category; label: string; blurb: string }[] = [
   { slug: "fashion", label: "Fashion", blurb: "Streetwear and apparel streams" },
   { slug: "electronics", label: "Electronics", blurb: "Consoles, phones and gadgets" },
 ];
+
+export function isCategorySlug(slug: string): slug is Category {
+  return CATEGORIES.some((cat) => cat.slug === slug);
+}
 
 export const SELLERS: Seller[] = [
   { slug: "cardboxuk", name: "CardBoxUK", platform: "whatnot", followers: 18400, bookmarks: 1260, rating: 4.9, showsHosted: 412, bio: "UK Pokémon slabs and vintage WOTC. Nightly singles with honest grading talk.", specialties: ["pokemon", "vintage"] },
@@ -187,8 +192,7 @@ function pick<T>(rng: () => number, list: T[]) {
 }
 
 function eventUrl(platform: Platform, id: string) {
-  if (platform === "ebay") return `https://www.ebay.co.uk/ebaylive/events/${id}`;
-  return `https://www.whatnot.com/live/${id}`;
+  return eventUrlForPlatform(platform, id);
 }
 
 function makeItems(rng: () => number, category: Category, count: number, streamId: string): StreamItem[] {
@@ -259,18 +263,19 @@ export function generateStreams(now = new Date()): Stream[] {
       let starts: Date;
       if (bucket < 0.12) {
         starts = new Date("2026-09-20T12:05:00+01:00");
-        starts.setMinutes(starts.getMinutes() - Math.floor(rng() * 90));
-      } else if (bucket < 0.22) {
-        starts = new Date("2026-09-20T14:10:00+01:00");
-        starts.setMinutes(starts.getMinutes() + Math.floor(rng() * 50));
+        starts.setMinutes(starts.getMinutes() - Math.floor(rng() * 90), 0, 0);
+      } else if (bucket < 0.26) {
+        starts = new Date("2026-09-20T13:49:00+01:00");
+        const soonOffsets = [6, 11, 16, 22, 29, 37, 46, 58, 71];
+        starts.setMinutes(starts.getMinutes() + soonOffsets[Math.floor(rng() * soonOffsets.length)], 0, 0);
       } else if (bucket < 0.48) {
         starts = new Date("2026-09-20T17:00:00+01:00");
-        starts.setHours(17 + Math.floor(rng() * 6), [0, 10, 15, 30, 45][Math.floor(rng() * 5)]);
+        starts.setHours(17 + Math.floor(rng() * 6), [0, 10, 15, 30, 45][Math.floor(rng() * 5)], 0, 0);
       } else {
         const span = end.getTime() - start.getTime();
         starts = new Date(start.getTime() + rng() * span);
+        starts.setMinutes([0, 10, 15, 20, 30, 45][Math.floor(rng() * 6)], 0, 0);
       }
-      starts.setMinutes([0, 10, 15, 20, 30, 45][Math.floor(rng() * 6)], 0, 0);
       const category = pick(rng, seller.specialties);
       const title = pick(rng, SHOW_TEMPLATES[category]);
       const itemCount = 8 + Math.floor(rng() * 28);

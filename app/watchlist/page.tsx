@@ -4,6 +4,7 @@ import { FormEvent } from "react";
 import Link from "next/link";
 import { watchlistMatches } from "@/lib/intelligence";
 import { Boot, useStore } from "@/lib/store";
+import { useLiveFeed } from "@/lib/live-feed";
 import { formatWhen, gbp } from "@/lib/time";
 
 export default function WatchlistPage() {
@@ -16,6 +17,7 @@ export default function WatchlistPage() {
 
 function WatchlistInner() {
   const { user, addWatch, removeWatch } = useStore();
+  const { clock, timeZone } = useLiveFeed();
 
   if (!user) {
     return (
@@ -63,7 +65,7 @@ function WatchlistInner() {
             <p className="text-xs text-teal">{watch.query}</p>
             <p className="font-display text-2xl">{stream.title}</p>
             <p className="text-sm text-paper-200/55">
-              {formatWhen(stream.startsAt)} · {items[0] && `${items[0].title} ${gbp(items[0].startingPrice)}`}
+              {formatWhen(stream.startsAt, clock, timeZone)} · {items[0] && `${items[0].title} ${gbp(items[0].startingPrice)}`}
             </p>
           </Link>
         ))}

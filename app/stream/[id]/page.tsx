@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { categoryLabel, sellerBySlug } from "@/lib/catalog";
+import { platformLabel } from "@/lib/platforms";
 import { comparables, getStream, opportunity } from "@/lib/intelligence";
 import { useStore } from "@/lib/store";
 import { dealPct } from "@/lib/intelligence";
@@ -11,7 +12,7 @@ import { formatCountdown, formatElapsed, formatWhen, gbp, msUntil, pct } from "@
 
 export default function StreamPage() {
   const { id } = useParams<{ id: string }>();
-  const { catalog, clock, discovered } = useLiveFeed();
+  const { catalog, clock, discovered, timeZone } = useLiveFeed();
   const stream = catalog.find((item) => item.id === id) ?? getStream(id, discovered);
   const { user, toggleFavorite } = useStore();
 
@@ -28,12 +29,12 @@ export default function StreamPage() {
       <header className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">
-            {stream.platform === "ebay" ? "eBay Live" : "Whatnot"} · {categoryLabel(stream.category)}
+            {platformLabel(stream.platform)} · {categoryLabel(stream.category)}
           </p>
           <h1 className="mt-2 font-display text-5xl leading-tight">{stream.title}</h1>
           <p className="mt-4 text-paper-200/70">{stream.description}</p>
           <p className="mt-4 text-sm text-paper-200/55">
-            {formatWhen(stream.startsAt, clock)} · {stream.itemCount} items · {stream.bookmarks} bookmarks
+            {formatWhen(stream.startsAt, clock, timeZone)} · {stream.itemCount} items · {stream.bookmarks} bookmarks
             {stream.unscheduled ? " · picked up by the scanner" : ""}
           </p>
           <p className={`mt-4 font-mono text-4xl tabular-nums ${stream.status === "live" ? "text-live" : "text-gold"}`}>
@@ -44,7 +45,7 @@ export default function StreamPage() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a href={stream.url} target="_blank" rel="noreferrer" className="btn-live">
-              {stream.status === "live" ? "Jump in now on" : "Open on"} {stream.platform === "ebay" ? "eBay" : "Whatnot"}
+              {stream.status === "live" ? "Jump in now on" : "Open on"} {platformLabel(stream.platform, "short")}
             </a>
             {user && (
               <button onClick={() => toggleFavorite(stream.id)} className="btn-ghost">
@@ -106,7 +107,7 @@ export default function StreamPage() {
                       </p>
                       {user && user.plan !== "free" && comps[0] && (
                         <p className="mt-1 text-[11px] text-signal">
-                          Also tonight/this week: {gbp(comps[0].item.startingPrice)} on {comps[0].stream.platform}
+                          Also tonight/this week: {gbp(comps[0].item.startingPrice)} on {platformLabel(comps[0].stream.platform, "short")}
                         </p>
                       )}
                     </td>

@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ALL_STREAMS, createSurpriseStream } from "./catalog";
-import { APP_NOW, withStatus } from "./time";
+import { APP_NOW, byStartTime, hourInZone, localDayStamp, withStatus } from "./time";
+import { DEFAULT_TIME_ZONE, countryForTimeZone, detectTimeZone } from "./zone";
 import type { Stream } from "./types";
 
 type ScanState = {
@@ -15,10 +16,13 @@ type ScanState = {
 
 type Feed = {
   clock: Date;
+  timeZone: string;
+  zoneLabel: string;
   discovered: Stream[];
   catalog: Stream[];
   live: Stream[];
   soon: Stream[];
+  upcoming: Stream[];
   tonight: Stream[];
   week: Stream[];
   scan: ScanState;
@@ -27,7 +31,8 @@ type Feed = {
 const Ctx = createContext<Feed | null>(null);
 
 export function LiveFeedProvider({ children }: { children: React.ReactNode }) {
-  const [offset, setOffset] = useState(0);
+  const [clock, setClock] = useState(() => (typeof window === "undefined" ? APP_NOW : new Date()));
+  const [timeZone, setTimeZone] = useState(() => (typeof window === "undefined" ? DEFAULT_TIME_ZONE : detectTimeZone()));
   const [discovered, setDiscovered] = useState<Stream[]>([]);
   const [scan, setScan] = useState<ScanState>({
     sweeps: 0,
@@ -38,17 +43,15 @@ export function LiveFeedProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    const started = Date.now();
-    const tick = window.setInterval(() => setOffset(Date.now() - started), 1000);
+    setTimeZone(detectTimeZone());
+    setClock(new Date());
+    const tick = window.setInterval(() => setClock(new Date()), 1000);
     return () => window.clearInterval(tick);
   }, []);
 
-  const clock = useMemo(() => new Date(APP_NOW.getTime() + offset), [offset]);
-
   useEffect(() => {
     let seq = 0;
-    const startedAt = Date.now();
-    const clockNow = () => new Date(APP_NOW.getTime() + (Date.now() - startedAt));
+    const clockNow = () => new Date();
 
     const sweep = () => {
       seq += 1;
@@ -85,19 +88,31 @@ export function LiveFeedProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<Feed>(() => {
     const merged = [...discovered, ...ALL_STREAMS].map((stream) => withStatus(stream, clock));
     const active = merged.filter((stream) => stream.status !== "ended");
-    const live = active.filter((stream) => stream.status === "live").sort((a, b) => (b.viewers ?? 0) - (a.viewers ?? 0));
-    const soon = active
-      .filter((stream) => stream.status === "soon")
-      .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
-    const tonight = active
+    const live = active.filter((stream) => stream.status === "live").sort(byStartTime);
+    const upcoming = active
+      .filter((stream) => stream.status === "soon" || stream.status === "upcoming")
+      .sort(byStartTime);
+    const soon = upcoming.filter((stream) => stream.status === "soon");
+    const tonight = upcoming
       .filter((stream) => {
-        const date = new Date(stream.startsAt);
-        return date.toDateString() === clock.toDateString() && date.getHours() >= 17;
+        return localDayStamp(new Date(stream.startsAt), timeZone) === localDayStamp(clock, timeZone) && hourInZone(stream.startsAt, timeZone) >= 17;
       })
-      .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
-    const week = active.sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
-    return { clock, discovered, catalog: merged, live, soon, tonight, week, scan };
-  }, [clock, discovered, scan]);
+      .sort(byStartTime);
+    const week = [...live, ...upcoming];
+    return {
+      clock,
+      timeZone,
+      zoneLabel: countryForTimeZone(timeZone),
+      discovered,
+      catalog: merged,
+      live,
+      soon,
+      upcoming,
+      tonight,
+      week,
+      scan,
+    };
+  }, [clock, discovered, scan, timeZone]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

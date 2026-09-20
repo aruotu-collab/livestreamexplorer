@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { LIVE_PLATFORMS } from "@/lib/platforms";
 
 export default function ListStreamPage() {
   const [done, setDone] = useState(false);
@@ -52,9 +53,12 @@ export default function ListStreamPage() {
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-3 rounded-3xl border border-white/8 bg-ink-900 p-6">
-          <select name="platform" defaultValue="whatnot">
-            <option value="whatnot">Whatnot</option>
-            <option value="ebay">eBay Live</option>
+          <select name="platform" defaultValue={LIVE_PLATFORMS[0]?.slug}>
+            {LIVE_PLATFORMS.map((platform) => (
+              <option key={platform.slug} value={platform.slug}>
+                {platform.label}
+              </option>
+            ))}
           </select>
           <input name="url" placeholder="Show URL" required />
           <input name="title" placeholder="Title" required />

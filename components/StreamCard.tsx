@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { categoryLabel, sellerBySlug } from "@/lib/catalog";
+import { platformLabel } from "@/lib/platforms";
 import { dealPct, opportunity } from "@/lib/intelligence";
 import { useOptionalFeed } from "@/lib/live-feed";
-import { formatCountdown, formatElapsed, formatWhen, gbp, msUntil, now } from "@/lib/time";
+import { formatClock, formatCountdown, formatElapsed, formatWhen, gbp, msUntil, now } from "@/lib/time";
 import type { Stream, UserState } from "@/lib/types";
 
 export function StreamCard({
@@ -20,6 +21,7 @@ export function StreamCard({
 }) {
   const feed = useOptionalFeed();
   const clock = feed?.clock ?? now();
+  const timeZone = feed?.timeZone;
   const seller = sellerBySlug(stream.sellerSlug);
   const opp = opportunity(stream, user);
   const live = stream.status === "live";
@@ -53,11 +55,11 @@ export function StreamCard({
                 <span className="pulse-live h-1.5 w-1.5 rounded-full bg-live" /> Live
               </span>
             ) : soon ? (
-              <span className="chip border-gold/40 text-gold">Soon</span>
+              <span className="chip border-gold/40 text-gold">Soon · {formatClock(stream.startsAt, timeZone)}</span>
             ) : (
-              <span className="chip">{formatWhen(stream.startsAt, clock)}</span>
+              <span className="chip">{formatWhen(stream.startsAt, clock, timeZone)}</span>
             )}
-            <span className="chip">{stream.platform === "ebay" ? "eBay" : "Whatnot"}</span>
+            <span className="chip">{platformLabel(stream.platform, "short")}</span>
             {stream.unscheduled && <span className="chip border-teal/40 text-teal">Just spotted</span>}
             {stream.sponsored && <span className="chip border-gold/40 text-gold">Sponsored</span>}
           </div>

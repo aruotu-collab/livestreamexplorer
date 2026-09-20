@@ -3,7 +3,8 @@ import type { Stream, StreamStatus } from "./types";
 export const APP_NOW = new Date("2026-09-20T13:49:00+01:00");
 
 export function now() {
-  return APP_NOW;
+  if (typeof window === "undefined") return APP_NOW;
+  return new Date();
 }
 
 export function withStatus(stream: Stream, at = now()): Stream {
@@ -17,37 +18,55 @@ export function withStatus(stream: Stream, at = now()): Stream {
   return { ...stream, status };
 }
 
-export function formatWhen(iso: string, at = now()) {
+export function formatWhen(iso: string, at = now(), timeZone?: string) {
   const date = new Date(iso);
-  const sameDay = date.toDateString() === at.toDateString();
+  const sameDay = localDayStamp(date, timeZone) === localDayStamp(at, timeZone);
   const tomorrow = new Date(at);
   tomorrow.setDate(at.getDate() + 1);
-  const time = date.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" });
+  const time = formatClock(iso, timeZone);
   if (sameDay) return `Today · ${time}`;
-  if (date.toDateString() === tomorrow.toDateString()) return `Tomorrow · ${time}`;
-  return date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + ` · ${time}`;
+  if (localDayStamp(date, timeZone) === localDayStamp(tomorrow, timeZone)) return `Tomorrow · ${time}`;
+  return date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone }) + ` · ${time}`;
 }
 
-export function formatClock(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" });
+export function formatClock(iso: string | Date, timeZone?: string) {
+  const date = typeof iso === "string" ? new Date(iso) : iso;
+  return date.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", timeZone });
 }
 
-export function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+export function formatDay(iso: string, timeZone?: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone });
 }
 
-export function dayKey(iso: string) {
-  return new Date(iso).toISOString().slice(0, 10);
+export function localDayStamp(value: Date, timeZone?: string) {
+  if (!timeZone) return value.toDateString();
+  return value.toLocaleDateString("en-CA", { timeZone });
 }
 
-export function isToday(iso: string, at = now()) {
-  return new Date(iso).toDateString() === at.toDateString();
+export function hourInZone(value: Date | string, timeZone?: string) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  const hour = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "numeric",
+    hourCycle: "h23",
+  })
+    .formatToParts(date)
+    .find((part) => part.type === "hour")?.value;
+  return Number(hour);
 }
 
-export function isTomorrow(iso: string, at = now()) {
+export function dayKey(iso: string, timeZone?: string) {
+  return localDayStamp(new Date(iso), timeZone);
+}
+
+export function isToday(iso: string, at = now(), timeZone?: string) {
+  return localDayStamp(new Date(iso), timeZone) === localDayStamp(at, timeZone);
+}
+
+export function isTomorrow(iso: string, at = now(), timeZone?: string) {
   const tomorrow = new Date(at);
   tomorrow.setDate(at.getDate() + 1);
-  return new Date(iso).toDateString() === tomorrow.toDateString();
+  return localDayStamp(new Date(iso), timeZone) === localDayStamp(tomorrow, timeZone);
 }
 
 export function isWeekend(iso: string) {
@@ -57,6 +76,30 @@ export function isWeekend(iso: string) {
 
 export function minutesUntil(iso: string, at = now()) {
   return Math.round((new Date(iso).getTime() - at.getTime()) / 60000);
+}
+
+export function byStartTime<T extends { startsAt: string }>(a: T, b: T) {
+  return +new Date(a.startsAt) - +new Date(b.startsAt);
+}
+
+export function takeSoonest<T extends { startsAt: string }>(streams: T[], limit = 6, maxPerSlot = 2) {
+  const ordered = [...streams].sort(byStartTime);
+  const counts = new Map<number, number>();
+  const picked: T[] = [];
+  for (const stream of ordered) {
+    const slot = +new Date(stream.startsAt);
+    const used = counts.get(slot) ?? 0;
+    if (used >= maxPerSlot) continue;
+    counts.set(slot, used + 1);
+    picked.push(stream);
+    if (picked.length >= limit) return picked;
+  }
+  for (const stream of ordered) {
+    if (picked.includes(stream)) continue;
+    picked.push(stream);
+    if (picked.length >= limit) break;
+  }
+  return picked;
 }
 
 export function msUntil(iso: string, at = now()) {

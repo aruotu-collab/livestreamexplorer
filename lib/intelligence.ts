@@ -6,6 +6,7 @@ import type {
   Category,
   CollectionItem,
   OpportunityBreakdown,
+  Platform,
   Stream,
   StreamItem,
   UserState,
@@ -28,7 +29,7 @@ export function liveNow() {
 
 export function startingSoon() {
   return streams()
-    .filter((stream) => stream.status === "soon")
+    .filter((stream) => stream.status === "soon" || stream.status === "upcoming")
     .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
 }
 
@@ -66,7 +67,7 @@ export function byCategory(slug: Category) {
   return next7().filter((stream) => stream.category === slug);
 }
 
-export function byPlatform(platform: "ebay" | "whatnot") {
+export function byPlatform(platform: Platform) {
   return next7().filter((stream) => stream.platform === platform);
 }
 

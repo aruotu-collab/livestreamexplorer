@@ -4,6 +4,7 @@ import { FormEvent } from "react";
 import Link from "next/link";
 import { collectionMatches } from "@/lib/intelligence";
 import { Boot, useStore } from "@/lib/store";
+import { useLiveFeed } from "@/lib/live-feed";
 import { formatWhen, gbp } from "@/lib/time";
 import type { Category } from "@/lib/types";
 
@@ -17,6 +18,7 @@ export default function CollectionPage() {
 
 function CollectionInner() {
   const { user, addCollection, toggleOwned } = useStore();
+  const { clock, timeZone } = useLiveFeed();
 
   if (!user) {
     return (
@@ -116,7 +118,7 @@ function CollectionInner() {
           {hits.map(({ stream, items }) => (
             <Link key={stream.id} href={`/stream/${stream.id}`} className="block rounded-2xl border border-white/8 bg-ink-900 p-5 hover:border-gold/30">
               <p className="font-display text-2xl">{stream.title}</p>
-              <p className="text-sm text-paper-200/55">{formatWhen(stream.startsAt)} · {items.map((item) => item.title).join(" · ")}</p>
+              <p className="text-sm text-paper-200/55">{formatWhen(stream.startsAt, clock, timeZone)} · {items.map((item) => item.title).join(" · ")}</p>
             </Link>
           ))}
         </div>

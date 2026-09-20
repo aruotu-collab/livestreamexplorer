@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Newsreader, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LiveFeedProvider } from "@/lib/live-feed";
@@ -18,15 +20,21 @@ export const metadata: Metadata = {
   },
   description:
     "Discover every relevant eBay Live and Whatnot stream. Find the items you want, understand market value, and know when an opportunity appears.",
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? "lAtvFj53t7LmqnyMdTd4MUqo_ea1w1cLVhrcobsSLek",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB">
       <body className={`${display.variable} ${sans.variable} ${mono.variable} font-sans`}>
+        <GoogleAnalytics />
         <StoreProvider>
           <LiveFeedProvider>
-            <Header />
+            <Suspense fallback={<header className="sticky top-0 z-40 h-[148px] border-b border-white/5 bg-ink-950/80" />}>
+              <Header />
+            </Suspense>
             <main className="mx-auto min-h-[70vh] max-w-6xl px-4 py-8">{children}</main>
             <Footer />
           </LiveFeedProvider>

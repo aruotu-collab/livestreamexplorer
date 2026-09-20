@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { sellerBySlug } from "@/lib/catalog";
+import { livePlatformSentence, platformLabel } from "@/lib/platforms";
 import { useLiveFeed } from "@/lib/live-feed";
 import { formatWhen } from "@/lib/time";
 
 export function ScannerBar() {
-  const { scan, clock, discovered } = useLiveFeed();
+  const { scan, clock, discovered, timeZone } = useLiveFeed();
   const seller = scan.lastFound ? sellerBySlug(scan.lastFound.sellerSlug) : null;
 
   return (
@@ -20,7 +21,7 @@ export function ScannerBar() {
               {scan.hunting ? "Scanning for unscheduled rooms" : "Scanner idle"}
             </p>
             <p className="mt-1 text-sm text-paper-200/70">
-              Sellers go live without a calendar slot. We keep sweeping Whatnot and eBay Live for rooms that were not listed a minute ago.
+              Sellers go live without a calendar slot. We keep sweeping {livePlatformSentence()} for rooms that were not listed a minute ago.
             </p>
           </div>
           <div className="text-right font-mono text-[11px] text-paper-200/45">
@@ -37,7 +38,7 @@ export function ScannerBar() {
               <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-teal">Just spotted</p>
               <p className="font-display text-xl">{scan.lastFound.title}</p>
               <p className="text-sm text-paper-200/55">
-                {seller?.name} · {scan.lastFound.platform === "ebay" ? "eBay Live" : "Whatnot"} · {formatWhen(scan.lastFound.startsAt, clock)}
+                {seller?.name} · {platformLabel(scan.lastFound.platform)} · {formatWhen(scan.lastFound.startsAt, clock, timeZone)}
               </p>
             </div>
             <span className="text-sm text-teal">Open before it fills →</span>
