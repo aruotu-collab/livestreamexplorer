@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-ink-950 text-paper-50 antialiased;
+  background-image:
+    radial-gradient(1200px 500px at 10% -10%, rgba(226, 177, 60, 0.08), transparent 50%),
+    radial-gradient(900px 400px at 90% 0%, rgba(47, 212, 197, 0.05), transparent 45%),
+    linear-gradient(#07080b, #07080b);
+}
+
+::selection {
+  background: rgba(226, 177, 60, 0.28);
+  color: #fff;
+}
+
+.radar-ring {
+  box-shadow: 0 0 0 1px rgba(255, 51, 85, 0.35), 0 0 18px rgba(255, 51, 85, 0.25);
+}
+
+.thumb-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+input, select, textarea {
+  @apply bg-ink-800 border border-ink-600 rounded-lg px-3 py-2 text-sm outline-none focus:border-gold/60;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition;
+  }
+
+  .btn-gold {
+    @apply btn bg-gold text-ink-950 hover:bg-paper-50;
+  }
+
+  .btn-ghost {
+    @apply btn border border-ink-600 text-paper-100 hover:border-paper-200/40 hover:bg-ink-800;
+  }
+
+  .btn-live {
+    @apply btn bg-live text-white hover:brightness-110;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-600 bg-ink-800/80 px-2.5 py-1 text-[11px] uppercase tracking-wide text-paper-200;
+  }
+}
+
+.hide-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.category-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(246, 241, 231, 0.32) rgba(255, 255, 255, 0.04);
+}
+
+.category-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.category-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.category-scroll::-webkit-scrollbar-thumb {
+  background: rgba(246, 241, 231, 0.32);
+  border-radius: 999px;
+}
+
+.category-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(226, 177, 60, 0.75);
+}
+
+.pulse-live {
+  animation: pulse-live 1.15s ease-in-out infinite;
+}
+
+@keyframes pulse-live {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.75);
+  }
+}
+
+.scan-line {
+  animation: scan-line 2.4s linear infinite;
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateX(-40%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(40%);
+    opacity: 0;
+  }
+}
