@@ -57,7 +57,10 @@ type Store = {
   hydrated: boolean;
   signIn: (name: string, email: string, interests?: Category[]) => void;
   signOut: () => void;
-  setPlan: (plan: Plan) => void;
+  setPlan: (
+    plan: Plan,
+    extras?: { stripeCustomerId?: string; cancelAtPeriodEnd?: boolean; currentPeriodEnd?: string | null },
+  ) => void;
   setInterests: (interests: Category[]) => void;
   addWatch: (item: Omit<WatchItem, "id" | "createdAt">) => void;
   removeWatch: (id: string) => void;
@@ -102,7 +105,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(KEY);
         setUser(null);
       },
-      setPlan: (plan) => setUser((current) => (current ? { ...current, plan } : current)),
+      setPlan: (plan, extras) =>
+        setUser((current) =>
+          current
+            ? {
+                ...current,
+                plan,
+                stripeCustomerId: extras?.stripeCustomerId ?? current.stripeCustomerId,
+                cancelAtPeriodEnd: extras?.cancelAtPeriodEnd ?? (plan === "free" ? false : current.cancelAtPeriodEnd),
+                currentPeriodEnd:
+                  extras?.currentPeriodEnd === null
+                    ? undefined
+                    : extras?.currentPeriodEnd ?? (plan === "free" ? undefined : current.currentPeriodEnd),
+              }
+            : current
+        ),
       setInterests: (interests) => setUser((current) => (current ? { ...current, interests } : current)),
       addWatch: (item) =>
         setUser((current) =>

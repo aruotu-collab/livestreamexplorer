@@ -123,7 +123,10 @@ export function Header() {
           </Link>
           {hydrated && user ? (
             <Link href="/account" className="btn-gold">
-              {user.name} · {user.plan}
+              {user.name} · {user.plan === "pro" ? "Pro" : user.plan === "collector" ? "Collector" : "Free"}
+              {user.cancelAtPeriodEnd && user.currentPeriodEnd
+                ? ` · ends ${new Date(user.currentPeriodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                : ""}
             </Link>
           ) : (
             <Link href="/signup" className="btn-gold">

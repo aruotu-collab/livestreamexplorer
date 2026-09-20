@@ -99,6 +99,9 @@ export interface UserState {
   email: string;
   name: string;
   plan: Plan;
+  stripeCustomerId?: string;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string;
   interests: Category[];
   agents: Agent[];
   watchlist: WatchItem[];

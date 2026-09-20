@@ -76,6 +76,30 @@ export async function recordSignup(input: { name: string; email: string; interes
   }
 }
 
+export async function recordPlanChange(input: {
+  email: string;
+  plan: string;
+  customerId?: string;
+  event: string;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string | null;
+}) {
+  if (!supabaseUrl || !supabaseKey) return;
+
+  try {
+    await supabaseInsert("billing_events", {
+      email: input.email.toLowerCase(),
+      plan: input.plan,
+      stripe_customer_id: input.customerId ?? null,
+      event: input.event,
+      cancel_at_period_end: input.cancelAtPeriodEnd ?? false,
+      current_period_end: input.currentPeriodEnd ?? null,
+    });
+  } catch {
+    // The billing table is optional until the first paid subscriber.
+  }
+}
+
 export async function recordStreamListing(input: {
   platform: string;
   url: string;

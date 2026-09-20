@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Boot, useStore } from "@/lib/store";
 import type { Plan } from "@/lib/types";
 
@@ -66,7 +67,60 @@ export default function PricingPage() {
 }
 
 function PricingInner() {
-  const { user, setPlan } = useStore();
+  const { user } = useStore();
+  const [busy, setBusy] = useState<Plan | null>(null);
+  const [error, setError] = useState("");
+
+  async function choose(plan: Plan) {
+    setError("");
+    if (plan === "free") {
+      if (user?.stripeCustomerId || user?.plan !== "free") {
+        await openPortal();
+        return;
+      }
+      return;
+    }
+    if (!user) {
+      window.location.href = "/signup";
+      return;
+    }
+    if (user.plan === plan) return;
+    setBusy(plan);
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, email: user.email, name: user.name }),
+      });
+      const data = (await response.json()) as { ok?: boolean; url?: string; error?: string };
+      if (!response.ok || !data.url) throw new Error(data.error || "Could not start checkout.");
+      window.location.href = data.url;
+    } catch (next) {
+      setError(next instanceof Error ? next.message : "Could not start checkout.");
+      setBusy(null);
+    }
+  }
+
+  async function openPortal() {
+    if (!user) {
+      window.location.href = "/signup";
+      return;
+    }
+    setBusy("free");
+    try {
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: user.stripeCustomerId, email: user.email }),
+      });
+      const data = (await response.json()) as { ok?: boolean; url?: string; error?: string };
+      if (!response.ok || !data.url) throw new Error(data.error || "Could not open billing.");
+      window.location.href = data.url;
+    } catch (next) {
+      setError(next instanceof Error ? next.message : "Could not open billing.");
+      setBusy(null);
+    }
+  }
 
   return (
     <div className="space-y-10">
@@ -74,9 +128,10 @@ function PricingInner() {
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">Monetisation</p>
         <h1 className="mt-2 font-display text-5xl">Don&apos;t pay for a calendar. Pay for fewer wasted hours.</h1>
         <p className="mt-4 text-paper-200/65">
-          Prices are a starting hypothesis — £4.99 to £14.99, annual plans, maybe £1 the first month. The experiment is which feature makes someone reach for their wallet.
+          Pro is £7.99 a month. Collector is £14.99. Checkout is handled by Stripe — we never see your card.
         </p>
       </header>
+      {error ? <p className="text-sm text-live">{error}</p> : null}
       <div className="grid gap-4 lg:grid-cols-3">
         {PLANS.map((plan) => {
           const active = user?.plan === plan.id;
@@ -97,10 +152,19 @@ function PricingInner() {
                 ))}
               </ul>
               <button
-                onClick={() => setPlan(plan.id)}
+                onClick={() => choose(plan.id)}
+                disabled={busy !== null || (active && plan.id !== "free")}
                 className={plan.id === "pro" ? "btn-gold mt-6 w-full" : "btn-ghost mt-6 w-full"}
               >
-                {active ? "Current plan" : user ? `Switch to ${plan.name}` : "Sign in to choose"}
+                {busy === plan.id
+                  ? "Redirecting…"
+                  : active
+                    ? "Current plan"
+                    : !user
+                      ? `Sign in for ${plan.name}`
+                      : plan.id === "free"
+                        ? "Manage billing"
+                        : `Upgrade to ${plan.name}`}
               </button>
             </article>
           );
