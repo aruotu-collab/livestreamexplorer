@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import { CATEGORIES } from "@/lib/catalog";
+import { renderTransactionalEmail, siteUrl } from "@/lib/server/email";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -28,9 +30,7 @@ async function supabaseInsert(table: string, row: Record<string, unknown>) {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!resendKey) {
-    throw new Error("Resend is not configured");
-  }
+  if (!resendKey) return;
 
   const resend = new Resend(resendKey);
   const { error } = await resend.emails.send({
@@ -50,13 +50,30 @@ export async function recordSignup(input: { name: string; email: string; interes
     interests: input.interests,
   });
 
-  await sendEmail(
-    input.email,
-    "Your LiveStream Explorer agent is ready",
-    `<p>Hi ${input.name},</p>
-     <p>Your free Watch Agent is on. We will watch eBay Live and Whatnot for the categories you picked: <strong>${input.interests.join(", ") || "your interests"}</strong>.</p>
-     <p><a href="https://livestreamexplorer.com/tonight">See tonight</a></p>`,
-  );
+  try {
+    const interests =
+      input.interests
+        .map((slug) => CATEGORIES.find((category) => category.slug === slug)?.label ?? slug)
+        .filter(Boolean)
+        .join(", ") || "the categories you picked";
+
+    await sendEmail(
+      input.email,
+      "Your Watch Agent is ready",
+      renderTransactionalEmail({
+        intro: "Use the link below to open your LiveStream Explorer Watch Agent.",
+        heading: "Your Watch Agent is ready",
+        paragraphs: [
+          `This Watch Agent is unique to you. It is watching eBay Live and Whatnot for ${interests}.`,
+          "If you didn't create this account, you can safely ignore this email.",
+        ],
+        ctaLabel: "Open your Watch Agent",
+        ctaHref: `${siteUrl}/agents`,
+      }),
+    );
+  } catch {
+    // Persist the signup even if transactional email is not configured yet.
+  }
 }
 
 export async function recordStreamListing(input: {
@@ -77,12 +94,24 @@ export async function recordStreamListing(input: {
   });
 
   const notify = process.env.NOTIFY_EMAIL ?? "hello@livestreamexplorer.com";
-  await sendEmail(
-    notify,
-    `New stream listing: ${input.title}`,
-    `<p>${input.seller} listed <strong>${input.title}</strong> on ${input.platform}.</p>
-     <p>${input.url}</p>
-     <p>Starts: ${input.startsAt || "unspecified"}</p>
-     <pre>${input.items || "No inventory notes"}</pre>`,
-  );
+  try {
+    await sendEmail(
+      notify,
+      `New stream listing: ${input.title}`,
+      renderTransactionalEmail({
+        intro: "A seller submitted a stream listing. Use the link below to review it.",
+        heading: "New stream listing",
+        paragraphs: [
+          `${input.seller} listed ${input.title} on ${input.platform}.`,
+          `Starts: ${input.startsAt || "unspecified"}`,
+          input.items?.trim() ? `Inventory notes: ${input.items.trim()}` : "No inventory notes were added.",
+          "This listing is not live on the calendar until you confirm title, category, time and products.",
+        ],
+        ctaLabel: "Open the show",
+        ctaHref: input.url || `${siteUrl}/tonight`,
+      }),
+    );
+  } catch {
+    // Persist the listing even if notification email is not configured yet.
+  }
 }
