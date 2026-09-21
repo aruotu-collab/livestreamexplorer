@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { StreamCard } from "@/components/StreamCard";
 import { sellerStats } from "@/lib/intelligence";
-import { platformLabel } from "@/lib/platforms";
+import { outboundUrl, platformLabel } from "@/lib/platforms";
 import { useStore } from "@/lib/store";
 
 export default function SellerPage() {
@@ -27,6 +27,14 @@ export default function SellerPage() {
           <Metric n={seller.rating.toFixed(1)} label="rating" />
           <Metric n={String(seller.showsHosted)} label="shows hosted" />
         </div>
+        <a
+          href={outboundUrl(seller.platform, { query: seller.name })}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-live mt-6"
+        >
+          Open on {platformLabel(seller.platform, "short")}
+        </a>
       </header>
       <section>
         <h2 className="font-display text-3xl">Upcoming shows</h2>

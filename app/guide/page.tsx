@@ -241,9 +241,8 @@ function Programme({ stream, watched }: { stream: Stream; watched: boolean }) {
   const time = formatClock(stream.startsAt, timeZone);
 
   return (
-    <Link
-      href={`/stream/${stream.id}`}
-      className={`block rounded-xl border px-2.5 py-2 ${
+    <div
+      className={`rounded-xl border px-2.5 py-2 ${
         ended
           ? "border-white/6 bg-ink-800/40 opacity-45"
           : `transition hover:-translate-y-px ${
@@ -257,6 +256,7 @@ function Programme({ stream, watched }: { stream: Stream; watched: boolean }) {
             }`
       }`}
     >
+    <Link href={`/stream/${stream.id}`} className="block">
       <div className="flex items-center gap-1.5">
         {live ? <span className="pulse-live h-1.5 w-1.5 rounded-full bg-live" /> : null}
         {soon ? <span className="pulse-live h-1.5 w-1.5 rounded-full bg-gold" /> : null}
@@ -282,5 +282,16 @@ function Programme({ stream, watched }: { stream: Stream; watched: boolean }) {
         {seller ? ` · ${seller.name}` : ""}
       </p>
     </Link>
+      {ended ? null : (
+        <a
+          href={stream.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`mt-1.5 inline-block text-[11px] ${live ? "text-live" : soon ? "text-gold" : "text-paper-50/80"}`}
+        >
+          Open on {platformLabel(stream.platform, "short")}
+        </a>
+      )}
+    </div>
   );
 }

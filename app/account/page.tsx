@@ -42,7 +42,7 @@ function AccountInner() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const [notice, setNotice] = useState("");
-  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingBusy, setBillingBusy] = useState<"manage" | "cancel" | null>(null);
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const lastStatus = useRef("");
 
@@ -101,21 +101,21 @@ function AccountInner() {
     };
   }, [user?.email, user?.stripeCustomerId, setPlan]);
 
-  async function openBilling() {
+  async function openBilling(intent: "manage" | "cancel" = "manage") {
     if (!user) return;
-    setBillingBusy(true);
+    setBillingBusy(intent);
     try {
       const response = await fetch("/api/billing/portal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: user.stripeCustomerId, email: user.email }),
+        body: JSON.stringify({ customerId: user.stripeCustomerId, email: user.email, intent }),
       });
       const data = (await response.json()) as { url?: string; error?: string };
       if (!data.url) throw new Error(data.error || "Could not open billing.");
       window.location.href = data.url;
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not open billing.");
-      setBillingBusy(false);
+      setBillingBusy(null);
     }
   }
 
@@ -163,6 +163,18 @@ function AccountInner() {
         {canceling && periodEnd ? (
           <p className="mt-4 font-mono text-xs uppercase tracking-[0.16em] text-gold">Cancels {formatEnd(periodEnd)}</p>
         ) : null}
+        {billed ? (
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button onClick={() => openBilling("manage")} disabled={billingBusy !== null} className="btn-ghost">
+              {billingBusy === "manage" ? "Opening…" : "Manage billing"}
+            </button>
+            {canceling ? null : (
+              <button onClick={() => openBilling("cancel")} disabled={billingBusy !== null} className="btn-ghost">
+                {billingBusy === "cancel" ? "Opening…" : "Cancel subscription"}
+              </button>
+            )}
+          </div>
+        ) : null}
       </section>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -174,9 +186,11 @@ function AccountInner() {
         <Link href="/pricing" className="btn-gold">
           Change plan
         </Link>
-        <button onClick={openBilling} disabled={billingBusy} className="btn-ghost">
-          {billingBusy ? "Opening…" : billed ? "Manage billing" : "Billing"}
-        </button>
+        {billed ? (
+          <button onClick={() => openBilling("manage")} disabled={billingBusy !== null} className="btn-ghost">
+            {billingBusy === "manage" ? "Opening…" : "Manage billing"}
+          </button>
+        ) : null}
         <button onClick={signOut} className="btn-ghost">
           Sign out
         </button>

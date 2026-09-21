@@ -44,7 +44,7 @@ export default function StreamPage() {
             </span>
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href={stream.url} target="_blank" rel="noreferrer" className="btn-live">
+            <a href={stream.url} target="_blank" rel="noopener noreferrer" className="btn-live">
               {stream.status === "live" ? "Jump in now on" : "Open on"} {platformLabel(stream.platform, "short")}
             </a>
             {user && (
@@ -56,6 +56,9 @@ export default function StreamPage() {
               {seller?.name}
             </Link>
           </div>
+          <p className="mt-3 text-xs text-paper-200/45">
+            Opens the real {platformLabel(stream.platform)} live board. We do not host the stream.
+          </p>
         </div>
         <aside className="rounded-3xl border border-gold/20 bg-ink-900 p-6 shadow-glow">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold">Opportunity score</p>

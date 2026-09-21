@@ -191,8 +191,8 @@ function pick<T>(rng: () => number, list: T[]) {
   return list[Math.floor(rng() * list.length)];
 }
 
-function eventUrl(platform: Platform, id: string) {
-  return eventUrlForPlatform(platform, id);
+function eventUrl(platform: Platform, seller: Seller, category: Category, eventId?: string) {
+  return eventUrlForPlatform(platform, eventId, `${seller.name} ${categoryLabel(category)}`);
 }
 
 function makeItems(rng: () => number, category: Category, count: number, streamId: string): StreamItem[] {
@@ -243,7 +243,7 @@ function buildVerifiedEbay(now: Date): Stream[] {
       thumbnailHue: 28 + index * 18,
       itemCount: items.length,
       bookmarks: 80 + Math.floor(rng() * 200),
-      url: eventUrl("ebay", id),
+      url: eventUrl("ebay", spec.seller, spec.category),
       items,
     };
   });
@@ -300,7 +300,7 @@ export function generateStreams(now = new Date()): Stream[] {
         itemCount,
         viewers,
         bookmarks: Math.max(8, Math.round(seller.bookmarks * (0.02 + rng() * 0.12))),
-        url: eventUrl(seller.platform, id.replace("stream-", "")),
+        url: eventUrl(seller.platform, seller, category),
         items,
         sponsored: rng() > 0.97,
       });
@@ -353,7 +353,7 @@ export function createSurpriseStream(at: Date, seq: number): Stream {
     itemCount: 8 + Math.floor(rng() * 20),
     viewers: alreadyLive ? 18 + Math.floor(rng() * 160) : undefined,
     bookmarks: 4 + Math.floor(rng() * 40),
-    url: eventUrl(seller.platform, id),
+    url: eventUrl(seller.platform, seller, category),
     items,
     unscheduled: true,
     discoveredAt: at.toISOString(),

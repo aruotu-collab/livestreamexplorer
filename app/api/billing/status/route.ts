@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findCustomerSubscription, summarizeSubscription } from "@/lib/server/stripe";
+import { cancelExtraSubscriptions, findPaidSubscriptions, summarizeSubscription } from "@/lib/server/stripe";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -11,7 +11,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const found = await findCustomerSubscription(customerId || undefined, email || undefined);
+    const found = await findPaidSubscriptions(customerId || undefined, email || undefined);
+    if (found.extras.length) await cancelExtraSubscriptions(found.extras);
     const summary = summarizeSubscription(found.subscription);
     return NextResponse.json({
       ok: true,

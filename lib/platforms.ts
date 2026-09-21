@@ -64,9 +64,44 @@ export function livePlatformSentence() {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-export function eventUrlForPlatform(platform: Platform, id: string) {
-  if (platform === "ebay") return `https://www.ebay.co.uk/ebaylive/events/${id}`;
-  if (platform === "whatnot") return `https://www.whatnot.com/live/${id}`;
-  if (platform === "youtube") return `https://www.youtube.com/watch?v=${id}`;
-  return `https://www.tiktok.com/live/${id}`;
+export function platformHubUrl(platform: Platform) {
+  if (platform === "ebay") return "https://www.ebay.co.uk/ebaylive";
+  if (platform === "whatnot") return "https://www.whatnot.com/";
+  if (platform === "youtube") return "https://www.youtube.com/";
+  return "https://www.tiktok.com/live";
+}
+
+const EBAY_EVENT_ID = /^[A-Za-z0-9]{10,}$/;
+const WHATNOT_LIVE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+
+export function outboundUrl(
+  platform: Platform,
+  opts?: { eventId?: string | null; query?: string | null },
+) {
+  const eventId = opts?.eventId?.trim() ?? "";
+  const query = opts?.query?.trim();
+
+  if (platform === "ebay") {
+    if (EBAY_EVENT_ID.test(eventId) && !/^ebay/i.test(eventId)) {
+      return `https://www.ebay.co.uk/ebaylive/events/${eventId}`;
+    }
+    return platformHubUrl("ebay");
+  }
+
+  if (platform === "whatnot") {
+    if (WHATNOT_LIVE_ID.test(eventId)) return `https://www.whatnot.com/live/${eventId}`;
+    return platformHubUrl("whatnot");
+  }
+
+  if (platform === "youtube") {
+    if (YOUTUBE_VIDEO_ID.test(eventId)) return `https://www.youtube.com/watch?v=${eventId}`;
+    return platformHubUrl("youtube");
+  }
+
+  return platformHubUrl("tiktok");
+}
+
+export function eventUrlForPlatform(platform: Platform, id?: string | null, query?: string | null) {
+  return outboundUrl(platform, { eventId: id, query });
 }

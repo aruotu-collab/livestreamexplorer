@@ -49,6 +49,7 @@ export function summarizeSubscription(subscription: Stripe.Subscription | null) 
       status: "none" as const,
       cancelAtPeriodEnd: false,
       currentPeriodEnd: null as string | null,
+      subscriptionId: null as string | null,
     };
   }
 
@@ -61,27 +62,89 @@ export function summarizeSubscription(subscription: Stripe.Subscription | null) 
     status: ending ? ("canceling" as const) : subscription.status === "past_due" ? ("past_due" as const) : ("active" as const),
     cancelAtPeriodEnd: ending,
     currentPeriodEnd: periodEndFromSubscription(subscription),
+    subscriptionId: subscription.id,
   };
 }
 
-export async function findCustomerSubscription(customerId?: string, email?: string) {
-  const stripe = getStripe();
-  let id = customerId?.trim();
-  if (!id && email) {
-    const customers = await stripe.customers.list({ email: email.trim().toLowerCase(), limit: 1 });
-    id = customers.data[0]?.id;
-  }
-  if (!id) return { customerId: null, subscription: null as Stripe.Subscription | null };
+const LIVE_STATUSES = new Set(["active", "trialing", "past_due", "unpaid"]);
 
-  const subscriptions = await stripe.subscriptions.list({
-    customer: id,
-    status: "all",
-    limit: 10,
-  });
-  const subscription =
-    subscriptions.data.find((item) => ["active", "trialing", "past_due", "unpaid"].includes(item.status)) ??
-    subscriptions.data[0] ??
+function planRank(subscription: Stripe.Subscription) {
+  const plan = planFromPriceId(subscription.items.data[0]?.price.id);
+  if (plan === "collector") return 2;
+  if (plan === "pro") return 1;
+  return 0;
+}
+
+export async function findCustomerSubscription(customerId?: string, email?: string) {
+  const found = await findPaidSubscriptions(customerId, email);
+  return { customerId: found.customerId, subscription: found.subscription };
+}
+
+export async function findPaidSubscriptions(customerId?: string, email?: string) {
+  const stripe = getStripe();
+  const customerIds = new Set<string>();
+  if (customerId?.trim()) customerIds.add(customerId.trim());
+  if (email?.trim()) {
+    const customers = await stripe.customers.list({ email: email.trim().toLowerCase(), limit: 10 });
+    for (const customer of customers.data) customerIds.add(customer.id);
+  }
+
+  const active: Stripe.Subscription[] = [];
+  for (const id of customerIds) {
+    const list = await stripe.subscriptions.list({ customer: id, status: "all", limit: 20 });
+    for (const subscription of list.data) {
+      if (LIVE_STATUSES.has(subscription.status)) active.push(subscription);
+    }
+  }
+
+  active.sort((a, b) => planRank(b) - planRank(a) || b.created - a.created);
+  const subscription = active[0] ?? null;
+  const primaryCustomer =
+    (typeof subscription?.customer === "string" ? subscription.customer : subscription?.customer?.id) ??
+    customerId?.trim() ??
+    [...customerIds][0] ??
     null;
 
-  return { customerId: id, subscription };
+  return { customerId: primaryCustomer, subscription, extras: active.slice(1) };
+}
+
+export async function cancelExtraSubscriptions(extras: Stripe.Subscription[]) {
+  const stripe = getStripe();
+  for (const extra of extras) {
+    if (!LIVE_STATUSES.has(extra.status)) continue;
+    await stripe.subscriptions.cancel(extra.id, { prorate: true });
+  }
+}
+
+export async function switchPaidPlan(email: string, plan: PaidPlan, name?: string) {
+  const stripe = getStripe();
+  const found = await findPaidSubscriptions(undefined, email);
+  if (found.extras.length) await cancelExtraSubscriptions(found.extras);
+
+  if (!found.subscription) {
+    return { kind: "checkout" as const, customerId: found.customerId, summary: summarizeSubscription(null) };
+  }
+
+  const current = summarizeSubscription(found.subscription);
+  if (current.plan === plan) {
+    return { kind: "unchanged" as const, customerId: found.customerId, summary: current };
+  }
+
+  const item = found.subscription.items.data[0];
+  if (!item) throw new Error("This subscription has no price to change.");
+
+  const upgrading = (plan === "collector" ? 2 : 1) > planRank(found.subscription);
+  const updated = await stripe.subscriptions.update(found.subscription.id, {
+    items: [{ id: item.id, price: priceIdFor(plan) }],
+    proration_behavior: upgrading ? "always_invoice" : "create_prorations",
+    ...(upgrading ? { payment_behavior: "error_if_incomplete" as const } : {}),
+    cancel_at_period_end: false,
+    metadata: { plan, email: email.toLowerCase(), name: name ?? "" },
+  });
+
+  return {
+    kind: "switched" as const,
+    customerId: found.customerId,
+    summary: summarizeSubscription(updated),
+  };
 }

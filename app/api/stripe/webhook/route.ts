@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStripe, isPaidPlan, summarizeSubscription } from "@/lib/server/stripe";
+import { cancelExtraSubscriptions, findPaidSubscriptions, getStripe, isPaidPlan, summarizeSubscription } from "@/lib/server/stripe";
 import { recordPlanChange } from "@/lib/server/backend";
 
 export const runtime = "nodejs";
@@ -22,11 +22,16 @@ export async function POST(request: Request) {
       const email = session.customer_email ?? session.metadata?.email ?? "";
       const planMeta = session.metadata?.plan;
       const plan = planMeta && isPaidPlan(planMeta) ? planMeta : null;
+      const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+      if (email || customerId) {
+        const found = await findPaidSubscriptions(customerId, email || undefined);
+        if (found.extras.length) await cancelExtraSubscriptions(found.extras);
+      }
       if (email && plan) {
         await recordPlanChange({
           email,
           plan,
-          customerId: typeof session.customer === "string" ? session.customer : undefined,
+          customerId,
           event: event.type,
         });
       }

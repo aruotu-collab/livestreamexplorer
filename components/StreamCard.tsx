@@ -34,8 +34,7 @@ export function StreamCard({
   const fromPrice = stream.items.length ? Math.min(...stream.items.map((item) => item.startingPrice)) : null;
 
   return (
-    <Link
-      href={`/stream/${stream.id}`}
+    <article
       className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-ink-900/80 transition hover:-translate-y-0.5 ${
         live
           ? "border-live/40 shadow-live hover:border-live/70"
@@ -44,6 +43,7 @@ export function StreamCard({
             : "border-white/8 hover:border-gold/30 hover:shadow-glow"
       }`}
     >
+      <Link href={`/stream/${stream.id}`} className="flex flex-1 flex-col">
       <div
         className="thumb-grid px-3 py-2.5"
         style={{ backgroundColor: `hsl(${stream.thumbnailHue} 28% 14%)` }}
@@ -98,9 +98,20 @@ export function StreamCard({
           <p className="text-xs text-teal">🎯 {matchCount} watchlist match{matchCount === 1 ? "" : "es"}</p>
         )}
         <span className={`pt-1 text-sm ${live ? "text-live" : "text-paper-50/80"}`}>
-          {live ? "Jump in live →" : soon ? "Be there at the open →" : "Open stream →"}
+          {live ? "Show details →" : soon ? "Be there at the open →" : "Open stream →"}
         </span>
       </div>
     </Link>
+      <div className="px-3 pb-3">
+        <a
+          href={stream.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={live ? "btn-live w-full" : "btn-ghost w-full"}
+        >
+          {live ? "Jump in now on" : "Open on"} {platformLabel(stream.platform, "short")}
+        </a>
+      </div>
+    </article>
   );
 }
