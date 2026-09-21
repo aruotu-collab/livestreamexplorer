@@ -28,7 +28,7 @@ export default function SellerPage() {
           <Metric n={String(seller.showsHosted)} label="shows hosted" />
         </div>
         <a
-          href={outboundUrl(seller.platform, { query: seller.name })}
+          href={outboundUrl(seller.platform, { query: seller.name, category: seller.specialties[0], seed: seller.slug })}
           target="_blank"
           rel="noopener noreferrer"
           className="btn-live mt-6"
