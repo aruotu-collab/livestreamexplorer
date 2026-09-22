@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { categoryLabel, sellerBySlug } from "@/lib/catalog";
-import { platformLabel } from "@/lib/platforms";
+import { isVerifiedLiveUrl, outboundCta, platformLabel } from "@/lib/platforms";
 import { dealPct, opportunity } from "@/lib/intelligence";
 import { useOptionalFeed } from "@/lib/live-feed";
 import { formatClock, formatCountdown, formatElapsed, formatWhen, gbp, msUntil, now } from "@/lib/time";
@@ -26,6 +26,7 @@ export function StreamCard({
   const opp = opportunity(stream, user);
   const live = stream.status === "live";
   const soon = stream.status === "soon";
+  const verifiedRoom = isVerifiedLiveUrl(stream.url);
   const remaining = msUntil(stream.startsAt, clock);
   const elapsed = -remaining;
   const viewers = live ? (stream.viewers ?? 40) + Math.floor(Math.max(0, elapsed) / 60000) : stream.viewers;
@@ -68,16 +69,16 @@ export function StreamCard({
           </span>
         </div>
         <p className={`mt-2 font-mono text-[1.65rem] tabular-nums leading-none ${live ? "text-live" : soon ? "text-gold" : "text-paper-50"}`}>
-          {live ? formatElapsed(elapsed) : formatCountdown(remaining)}
+          {live && verifiedRoom ? formatElapsed(elapsed) : live ? "Live" : formatCountdown(remaining)}
           <span className="ml-2 align-middle font-mono text-[10px] uppercase tracking-[0.16em] text-paper-200/50">
-            {live ? "on air" : soon ? "starts in" : "countdown"}
+            {live && verifiedRoom ? "on air" : live ? "on the board" : soon ? "starts in" : "countdown"}
           </span>
         </p>
       </div>
       <div className="flex flex-1 flex-col gap-1 px-3 py-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-paper-200/45">
-          {categoryLabel(stream.category)} · {stream.itemCount} items
-          {!live && fromPrice !== null ? ` · from ${gbp(fromPrice)}` : ""}
+          {categoryLabel(stream.category)} · {stream.itemCount} {stream.itemCount === 1 ? "item" : "items"}
+          {fromPrice !== null ? ` · from ${gbp(fromPrice)}` : ""}
         </p>
         <h3 className={`font-display text-[1.2rem] leading-tight ${live ? "group-hover:text-live" : "group-hover:text-gold"}`}>
           {stream.title}
@@ -92,7 +93,9 @@ export function StreamCard({
             {best.title} · {Math.abs(bestDelta).toFixed(0)}% under · {gbp(best.currentPrice ?? best.startingPrice)} live
           </p>
         ) : live ? (
-          <p className="text-sm text-paper-200/55">Room is open · bids happening now</p>
+          <p className="text-sm text-paper-200/55">
+            {verifiedRoom ? "Room is open · bids happening now" : "Open the live board and pick the room that is on"}
+          </p>
         ) : null}
         {typeof matchCount === "number" && matchCount > 0 && (
           <p className="text-xs text-teal">🎯 {matchCount} watchlist match{matchCount === 1 ? "" : "es"}</p>
@@ -109,7 +112,7 @@ export function StreamCard({
           rel="noopener noreferrer"
           className={live ? "btn-live w-full" : "btn-ghost w-full"}
         >
-          {live ? "Jump in now on" : "Open on"} {platformLabel(stream.platform, "short")}
+          {outboundCta(stream.platform, { live, url: stream.url })}
         </a>
       </div>
     </article>

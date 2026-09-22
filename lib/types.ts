@@ -16,6 +16,8 @@ export type Category =
   | "fashion"
   | "electronics";
 
+export type ItemSource = "synthetic" | "ebay-seller";
+
 export interface StreamItem {
   id: string;
   title: string;
@@ -29,12 +31,15 @@ export interface StreamItem {
   marketHigh: number;
   salesCount: number;
   rarity: "common" | "uncommon" | "rare" | "grail";
+  listingUrl?: string;
+  source?: ItemSource;
 }
 
 export interface Seller {
   slug: string;
   name: string;
   platform: Platform;
+  handle?: string;
   followers: number;
   bookmarks: number;
   rating: number;
@@ -49,6 +54,7 @@ export interface Stream {
   description: string;
   platform: Platform;
   sellerSlug: string;
+  sellerHandle?: string;
   category: Category;
   tags: string[];
   startsAt: string;
@@ -62,6 +68,11 @@ export interface Stream {
   sponsored?: boolean;
   unscheduled?: boolean;
   discoveredAt?: string;
+}
+
+export interface LiveLot {
+  item: StreamItem;
+  stream: Stream;
 }
 
 export interface WatchItem {

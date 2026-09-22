@@ -17,7 +17,7 @@ import {
   visibleGuideSlot,
 } from "@/lib/guide";
 import { useLiveFeed } from "@/lib/live-feed";
-import { isPlatformSlug, platformLabel } from "@/lib/platforms";
+import { isPlatformSlug, outboundCta, platformLabel } from "@/lib/platforms";
 import { useStore } from "@/lib/store";
 import { byStartTime, formatClock, isToday, msUntil } from "@/lib/time";
 import type { Stream } from "@/lib/types";
@@ -293,7 +293,7 @@ function Programme({ stream, watched }: { stream: Stream; watched: boolean }) {
           rel="noopener noreferrer"
           className={`mt-1.5 inline-block text-[11px] ${live ? "text-live" : soon ? "text-gold" : "text-paper-50/80"}`}
         >
-          Open on {platformLabel(stream.platform, "short")}
+          {outboundCta(stream.platform, { live, url: stream.url })}
         </a>
       )}
     </div>

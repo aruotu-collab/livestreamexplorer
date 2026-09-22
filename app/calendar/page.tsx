@@ -44,7 +44,7 @@ export default function CalendarPage() {
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">Free calendar</p>
         <h1 className="mt-2 font-display text-5xl">7-day livestream calendar</h1>
         <p className="mt-3 max-w-2xl text-paper-200/65">
-          Filter by platform and day. Every card links out to the eBay event or Whatnot seller-show page. Intelligence lives one click deeper.
+          Filter by platform and day. Real eBay rooms use the exact event URL. Open the item calendar to see stock those sellers have actually listed.
         </p>
         <div className="mt-4">
           <BrowseLinks current="calendar" />

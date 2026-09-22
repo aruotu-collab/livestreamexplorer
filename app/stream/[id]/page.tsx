@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageBack } from "@/components/PageBack";
 import { categoryLabel, sellerBySlug } from "@/lib/catalog";
-import { platformLabel } from "@/lib/platforms";
+import { isVerifiedLiveUrl, outboundCta, platformLabel } from "@/lib/platforms";
 import { comparables, getStream, opportunity } from "@/lib/intelligence";
 import { useStore } from "@/lib/store";
 import { dealPct } from "@/lib/intelligence";
@@ -30,6 +30,8 @@ export default function StreamPage() {
   const seller = sellerBySlug(stream.sellerSlug);
   const opp = opportunity(stream, user);
   const saved = user?.favorites.includes(stream.id);
+  const verifiedRoom = isVerifiedLiveUrl(stream.url);
+  const live = stream.status === "live";
 
   return (
     <article className="space-y-10">
@@ -39,6 +41,7 @@ export default function StreamPage() {
         trail={[
           { href: "/guide", label: "Guide" },
           { href: "/tonight", label: "Tonight" },
+          { href: "/items", label: "Items" },
           { href: `/seller/${stream.sellerSlug}`, label: seller?.name ?? "Seller" },
         ]}
       />
@@ -53,15 +56,19 @@ export default function StreamPage() {
             {formatWhen(stream.startsAt, clock, timeZone)} · {stream.itemCount} items · {stream.bookmarks} bookmarks
             {stream.unscheduled ? " · picked up by the scanner" : ""}
           </p>
-          <p className={`mt-4 font-mono text-4xl tabular-nums ${stream.status === "live" ? "text-live" : "text-gold"}`}>
-            {stream.status === "live" ? formatElapsed(-msUntil(stream.startsAt, clock)) : formatCountdown(msUntil(stream.startsAt, clock))}
+          <p className={`mt-4 font-mono text-4xl tabular-nums ${live ? "text-live" : "text-gold"}`}>
+            {live && verifiedRoom
+              ? formatElapsed(-msUntil(stream.startsAt, clock))
+              : live
+                ? "Live"
+                : formatCountdown(msUntil(stream.startsAt, clock))}
             <span className="ml-3 text-sm uppercase tracking-[0.16em] text-paper-200/45">
-              {stream.status === "live" ? "on air" : "until start"}
+              {live && verifiedRoom ? "on air" : live ? "on the board" : "until start"}
             </span>
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a href={stream.url} target="_blank" rel="noopener noreferrer" className="btn-live">
-              {stream.status === "live" ? "Jump in now on" : "Open on"} {platformLabel(stream.platform, "short")}
+              {outboundCta(stream.platform, { live, url: stream.url })}
             </a>
             {user && (
               <button onClick={() => toggleFavorite(stream.id)} className="btn-ghost">
@@ -73,7 +80,7 @@ export default function StreamPage() {
             </Link>
           </div>
           <p className="mt-3 text-xs text-paper-200/45">
-            Opens the real {platformLabel(stream.platform)} live board. We do not host the stream.
+            Sends you to {platformLabel(stream.platform)} to find the room that is actually on. We do not host the stream.
           </p>
         </div>
         <aside className="rounded-3xl border border-gold/20 bg-ink-900 p-6 shadow-glow">
@@ -95,47 +102,85 @@ export default function StreamPage() {
 
       <section>
         <div className="flex items-end justify-between">
-          <h2 className="font-display text-3xl">Deal intelligence</h2>
-          {!user || user.plan === "free" ? (
+          <h2 className="font-display text-3xl">
+            {stream.items.some((item) => item.source === "ebay-seller") ? "Listed by this seller" : "Deal intelligence"}
+          </h2>
+          {stream.items.some((item) => item.source === "ebay-seller") ? (
+            <Link href="/items" className="text-sm text-gold">
+              Item calendar
+            </Link>
+          ) : !user || user.plan === "free" ? (
             <Link href="/pricing" className="text-sm text-gold">
               Unlock full market snapshots on Pro
             </Link>
           ) : null}
         </div>
+        {!stream.items.length ? (
+          <div className="mt-5 rounded-2xl border border-white/8 bg-ink-900 p-6">
+            <p className="font-display text-2xl">No posted listings yet</p>
+            <p className="mt-2 text-sm text-paper-200/65">
+              {verifiedRoom
+                ? "This room is real. The seller has not published shop stock we can open, so we are not inventing lots. Jump in on the platform to see what comes up on camera."
+                : "Inventory for this slot has not been confirmed."}
+            </p>
+          </div>
+        ) : (
+        <>
         <div className="mt-5 overflow-hidden rounded-2xl border border-white/8">
           <table className="w-full text-left text-sm">
             <thead className="bg-ink-800 font-mono text-[10px] uppercase tracking-[0.14em] text-paper-200/50">
               <tr>
                 <th className="px-4 py-3">Item</th>
-                <th className="px-4 py-3">Live / start</th>
-                <th className="px-4 py-3">Recent median</th>
-                <th className="px-4 py-3">Range</th>
-                <th className="px-4 py-3">Deal</th>
+                <th className="px-4 py-3">Listed</th>
+                {stream.items.some((item) => item.source === "ebay-seller") ? (
+                  <th className="px-4 py-3">Listing</th>
+                ) : (
+                  <>
+                    <th className="px-4 py-3">Recent median</th>
+                    <th className="px-4 py-3">Range</th>
+                    <th className="px-4 py-3">Deal</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody>
               {stream.items.map((item) => {
                 const delta = dealPct(item);
                 const comps = comparables(item);
+                const real = item.source === "ebay-seller";
                 return (
                   <tr key={item.id} className="border-t border-white/5">
                     <td className="px-4 py-3">
                       <p className="font-medium">{item.title}</p>
                       <p className="text-xs text-paper-200/45">
-                        {item.set} · {item.grade}
+                        {[item.set, item.grade].filter(Boolean).join(" · ") || "eBay listing"}
                       </p>
-                      {user && user.plan !== "free" && comps[0] && (
+                      {!real && user && user.plan !== "free" && comps[0] && (
                         <p className="mt-1 text-[11px] text-signal">
                           Also tonight/this week: {gbp(comps[0].item.startingPrice)} on {platformLabel(comps[0].stream.platform, "short")}
                         </p>
                       )}
                     </td>
                     <td className="px-4 py-3">{gbp(item.currentPrice ?? item.startingPrice)}</td>
-                    <td className="px-4 py-3">{user?.plan === "collector" ? gbp(item.marketMedian) : user ? gbp(item.marketMedian) : "—"}</td>
-                    <td className="px-4 py-3 text-paper-200/55">
-                      {user && user.plan !== "free" ? `${gbp(item.marketLow)}–${gbp(item.marketHigh)}` : "Pro"}
-                    </td>
-                    <td className={`px-4 py-3 ${delta < 0 ? "text-teal" : "text-paper-200/60"}`}>{pct(delta)}</td>
+                    {real ? (
+                      <td className="px-4 py-3">
+                        {item.listingUrl ? (
+                          <a href={item.listingUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-paper-50">
+                            Open on eBay
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    ) : (
+                      <>
+                        <td className="px-4 py-3">{user?.plan === "collector" ? gbp(item.marketMedian) : user ? gbp(item.marketMedian) : "—"}</td>
+                        <td className="px-4 py-3 text-paper-200/55">
+                          {user && user.plan !== "free" ? `${gbp(item.marketLow)}–${gbp(item.marketHigh)}` : "Pro"}
+                        </td>
+                        <td className={`px-4 py-3 ${delta < 0 ? "text-teal" : "text-paper-200/60"}`}>{pct(delta)}</td>
+                      </>
+                    )}
                   </tr>
                 );
               })}
@@ -143,8 +188,12 @@ export default function StreamPage() {
           </table>
         </div>
         <p className="mt-3 text-xs text-paper-200/40">
-          Market information, not a buy recommendation. Comparables are prototype estimates from recent sold ranges.
+          {stream.items.some((item) => item.source === "ebay-seller")
+            ? "These are the seller’s current eBay listings, not a guaranteed live-show queue. Jump into the room for what is on camera."
+            : "Market information, not a buy recommendation. Comparables are prototype estimates from recent sold ranges."}
         </p>
+        </>
+        )}
       </section>
     </article>
   );

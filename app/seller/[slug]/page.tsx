@@ -3,14 +3,19 @@
 import { useParams } from "next/navigation";
 import { PageBack } from "@/components/PageBack";
 import { StreamCard } from "@/components/StreamCard";
+import { sellerBySlug } from "@/lib/catalog";
 import { sellerStats } from "@/lib/intelligence";
-import { outboundUrl, platformLabel } from "@/lib/platforms";
+import { isVerifiedLiveUrl, outboundCta, outboundUrl, platformLabel } from "@/lib/platforms";
+import { useLiveFeed } from "@/lib/live-feed";
 import { useStore } from "@/lib/store";
 
 export default function SellerPage() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useStore();
-  const { seller, upcoming } = sellerStats(slug);
+  const { catalog } = useLiveFeed();
+  const stats = sellerStats(slug);
+  const seller = sellerBySlug(slug) ?? stats.seller;
+  const upcoming = catalog.filter((stream) => stream.sellerSlug === slug && stream.status !== "ended");
 
   if (!seller) {
     return (
@@ -21,6 +26,9 @@ export default function SellerPage() {
       </div>
     );
   }
+
+  const liveShow = upcoming.find((stream) => stream.status === "live" && isVerifiedLiveUrl(stream.url));
+  const sellerUrl = liveShow?.url ?? outboundUrl(seller.platform, { query: seller.name });
 
   return (
     <div className="space-y-8">
@@ -45,13 +53,8 @@ export default function SellerPage() {
           <Metric n={seller.rating.toFixed(1)} label="rating" />
           <Metric n={String(seller.showsHosted)} label="shows hosted" />
         </div>
-        <a
-          href={outboundUrl(seller.platform, { query: seller.name, category: seller.specialties[0], seed: seller.slug })}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-live mt-6"
-        >
-          Open on {platformLabel(seller.platform, "short")}
+        <a href={sellerUrl} target="_blank" rel="noopener noreferrer" className="btn-live mt-6">
+          {outboundCta(seller.platform, { live: Boolean(liveShow), url: sellerUrl })}
         </a>
       </header>
       <section>

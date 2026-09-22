@@ -1,6 +1,7 @@
+import { isVerifiedLiveUrl } from "./platforms";
 import type { Stream, StreamStatus } from "./types";
 
-export const APP_NOW = new Date("2026-09-20T13:49:00+01:00");
+export const APP_NOW = new Date("2026-09-22T13:21:00+01:00");
 
 export function now() {
   if (typeof window === "undefined") return APP_NOW;
@@ -8,9 +9,10 @@ export function now() {
 }
 
 export function withStatus(stream: Stream, at = now()): Stream {
+  if (stream.status === "live" && isVerifiedLiveUrl(stream.url)) return { ...stream, status: "live" };
   const start = new Date(stream.startsAt).getTime();
   const t = at.getTime();
-  const liveWindow = 2.5 * 60 * 60 * 1000;
+  const liveWindow = (isVerifiedLiveUrl(stream.url) ? 8 : 2.5) * 60 * 60 * 1000;
   let status: StreamStatus = "upcoming";
   if (t >= start && t < start + liveWindow) status = "live";
   else if (start > t && start - t <= 60 * 60 * 1000) status = "soon";

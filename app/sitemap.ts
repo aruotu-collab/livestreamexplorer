@@ -20,6 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/guide", { changeFrequency: "hourly", priority: 0.9 }),
     page("/tonight", { changeFrequency: "hourly", priority: 0.8 }),
     page("/calendar", { changeFrequency: "daily", priority: 0.7 }),
+    page("/items", { changeFrequency: "hourly", priority: 0.8 }),
     page("/search", { changeFrequency: "weekly", priority: 0.5 }),
     page("/pricing", { changeFrequency: "monthly", priority: 0.4 }),
     page("/about", { changeFrequency: "monthly", priority: 0.4 }),

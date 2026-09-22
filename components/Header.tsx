@@ -16,6 +16,7 @@ import type { Category, Platform } from "@/lib/types";
 const NAV = [
   { href: "/guide", label: "Guide", icon: "calendar" as const },
   { href: "/tonight", label: "Tonight" },
+  { href: "/items", label: "Items" },
   { href: "/agents", label: "Agents" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/collection", label: "Collection" },
@@ -63,7 +64,7 @@ export function Header() {
   const showBrowseChips = isBrowsePath(path);
   const allPlatformsActive = onGuide
     ? !guidePlatform
-    : pathMatches(path, "/") || pathMatches(path, "/tonight") || pathMatches(path, "/calendar");
+    : pathMatches(path, "/") || pathMatches(path, "/tonight") || pathMatches(path, "/calendar") || pathMatches(path, "/items");
   const countSource = onGuide
     ? catalog.filter((stream) => !guidePlatform || stream.platform === guidePlatform)
     : live;

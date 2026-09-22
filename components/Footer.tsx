@@ -16,6 +16,7 @@ export function Footer() {
           <Link className="block hover:text-paper-50" href="/guide">The Guide</Link>
           <Link className="block hover:text-paper-50" href="/tonight">Tonight</Link>
           <Link className="block hover:text-paper-50" href="/calendar">7-day calendar</Link>
+          <Link className="block hover:text-paper-50" href="/items">Item calendar</Link>
           <Link className="block hover:text-paper-50" href="/search">Search</Link>
           <Link className="block hover:text-paper-50" href="/live/pokemon">Pokémon</Link>
           <Link className="block hover:text-paper-50" href="/live/football-cards">Football cards</Link>

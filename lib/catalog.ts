@@ -1,3 +1,4 @@
+import { indexedSellerBySlug } from "./live-index";
 import { eventUrlForPlatform } from "./platforms";
 import type { Category, Platform, Seller, Stream, StreamItem } from "./types";
 
@@ -220,27 +221,29 @@ function makeItems(rng: () => number, category: Category, count: number, streamI
 function buildVerifiedEbay(now: Date): Stream[] {
   const host = SELLERS.find((s) => s.slug === "ebay-collectibles-live")!;
   const luxury = SELLERS.find((s) => s.slug === "ebay-luxury-live")!;
-  const specs: { day: number; hour: number; minute: number; title: string; seller: Seller; category: Category }[] = [
-    { day: 20, hour: 15, minute: 0, title: "eBay Live — Collectibles Sunday", seller: host, category: "pokemon" },
-    { day: 21, hour: 14, minute: 0, title: "eBay Live — Trading Cards Monday", seller: host, category: "football-cards" },
-    { day: 22, hour: 7, minute: 0, title: "eBay Live — Early Coin & Collectibles", seller: host, category: "coins" },
-    { day: 26, hour: 12, minute: 30, title: "eBay Live — Saturday Collectibles", seller: host, category: "pokemon" },
-    { day: 26, hour: 16, minute: 30, title: "eBay Luxury Watches Live", seller: luxury, category: "watches" },
+  const specs: { offsetDays: number; hour: number; minute: number; title: string; seller: Seller; category: Category }[] = [
+    { offsetDays: 0, hour: 15, minute: 0, title: "eBay Live — Collectibles", seller: host, category: "pokemon" },
+    { offsetDays: 1, hour: 14, minute: 0, title: "eBay Live — Trading Cards", seller: host, category: "football-cards" },
+    { offsetDays: 2, hour: 7, minute: 0, title: "eBay Live — Early Coin & Collectibles", seller: host, category: "coins" },
+    { offsetDays: 4, hour: 12, minute: 30, title: "eBay Live — Saturday Collectibles", seller: host, category: "pokemon" },
+    { offsetDays: 4, hour: 16, minute: 30, title: "eBay Luxury Watches Live", seller: luxury, category: "watches" },
   ];
 
   return specs.map((spec, index) => {
-    const starts = new Date(Date.UTC(2026, 8, spec.day, spec.hour - 1, spec.minute));
+    const starts = new Date(now);
+    starts.setDate(now.getDate() + spec.offsetDays);
+    starts.setHours(spec.hour, spec.minute, 0, 0);
     const id = `ebay-verified-${index + 1}`;
     const rng = mulberry32(hash(id));
     const items = makeItems(rng, spec.category, 10 + Math.floor(rng() * 12), id);
     return {
       id,
       title: spec.title,
-      description: "Indexed from eBay Live's public event schedule. Title, start time and seller taken from the channel listing.",
+      description: "A scheduled eBay Live slot. Opens the eBay Live board so you can pick the room that is actually on.",
       platform: "ebay" as const,
       sellerSlug: spec.seller.slug,
       category: spec.category,
-      tags: [spec.category, "ebay-live", "verified"],
+      tags: [spec.category, "ebay-live"],
       startsAt: starts.toISOString(),
       status: "upcoming" as const,
       thumbnailHue: 28 + index * 18,
@@ -254,8 +257,10 @@ function buildVerifiedEbay(now: Date): Stream[] {
 
 export function generateStreams(now = new Date()): Stream[] {
   const streams: Stream[] = buildVerifiedEbay(now);
-  const start = new Date(Date.UTC(2026, 8, 20, 8, 0));
-  const end = new Date(Date.UTC(2026, 8, 27, 2, 0));
+  const weekStart = new Date(now);
+  weekStart.setHours(8, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
 
   for (const seller of SELLERS) {
     const shows = seller.platform === "whatnot" ? (seller.followers > 15000 ? 18 : seller.followers > 6000 ? 13 : 8) : 4;
@@ -264,20 +269,21 @@ export function generateStreams(now = new Date()): Stream[] {
       const rng = mulberry32(hash(id + String(n)));
       const bucket = rng();
       let starts: Date;
-      if (bucket < 0.12) {
-        starts = new Date("2026-09-20T12:05:00+01:00");
-        starts.setMinutes(starts.getMinutes() - Math.floor(rng() * 90), 0, 0);
-      } else if (bucket < 0.26) {
-        starts = new Date("2026-09-20T13:49:00+01:00");
+      if (bucket < 0.26) {
+        starts = new Date(now);
         const soonOffsets = [6, 11, 16, 22, 29, 37, 46, 58, 71];
         starts.setMinutes(starts.getMinutes() + soonOffsets[Math.floor(rng() * soonOffsets.length)], 0, 0);
       } else if (bucket < 0.48) {
-        starts = new Date("2026-09-20T17:00:00+01:00");
+        starts = new Date(now);
         starts.setHours(17 + Math.floor(rng() * 6), [0, 10, 15, 30, 45][Math.floor(rng() * 5)], 0, 0);
       } else {
-        const span = end.getTime() - start.getTime();
-        starts = new Date(start.getTime() + rng() * span);
+        const from = Math.max(weekStart.getTime(), now.getTime() + 30 * 60 * 1000);
+        const span = Math.max(60 * 60 * 1000, weekEnd.getTime() - from);
+        starts = new Date(from + rng() * span);
         starts.setMinutes([0, 10, 15, 20, 30, 45][Math.floor(rng() * 6)], 0, 0);
+      }
+      if (starts.getTime() < now.getTime() + 2 * 60 * 1000) {
+        starts = new Date(now.getTime() + (2 + Math.floor(rng() * 20)) * 60 * 1000);
       }
       const category = pick(rng, seller.specialties);
       const title = pick(rng, SHOW_TEMPLATES[category]);
@@ -314,14 +320,14 @@ export function generateStreams(now = new Date()): Stream[] {
 }
 
 export function sellerBySlug(slug: string) {
-  return SELLERS.find((seller) => seller.slug === slug);
+  return SELLERS.find((seller) => seller.slug === slug) ?? indexedSellerBySlug(slug);
 }
 
 export function categoryLabel(slug: string) {
   return CATEGORIES.find((c) => c.slug === slug)?.label ?? slug;
 }
 
-export const ALL_STREAMS = generateStreams(new Date("2026-09-20T13:00:00+01:00"));
+export const ALL_STREAMS = generateStreams(new Date("2026-09-22T13:00:00+01:00"));
 
 const SURPRISE_HOOKS = [
   "Went live with no schedule",
@@ -336,10 +342,8 @@ export function createSurpriseStream(at: Date, seq: number): Stream {
   const seller = SELLERS[seq % SELLERS.length];
   const rng = mulberry32(hash(`surprise-${seller.slug}-${seq}-${Math.floor(at.getTime() / 8000)}`));
   const category = pick(rng, seller.specialties);
-  const alreadyLive = rng() > 0.32;
   const starts = new Date(at);
-  if (alreadyLive) starts.setMinutes(starts.getMinutes() - Math.floor(rng() * 22), starts.getSeconds());
-  else starts.setMinutes(starts.getMinutes() + 2 + Math.floor(rng() * 16), [0, 15, 30, 45][Math.floor(rng() * 4)]);
+  starts.setMinutes(starts.getMinutes() + 2 + Math.floor(rng() * 16), [0, 15, 30, 45][Math.floor(rng() * 4)]);
   const id = `spotted-${seq}-${starts.getTime()}`;
   const items = makeItems(rng, category, 6 + Math.floor(rng() * 10), id);
   return {
@@ -351,10 +355,9 @@ export function createSurpriseStream(at: Date, seq: number): Stream {
     category,
     tags: [category, seller.platform, "unscheduled", "just-spotted"],
     startsAt: starts.toISOString(),
-    status: alreadyLive ? "live" : "soon",
+    status: "soon",
     thumbnailHue: Math.floor(rng() * 360),
     itemCount: 8 + Math.floor(rng() * 20),
-    viewers: alreadyLive ? 18 + Math.floor(rng() * 160) : undefined,
     bookmarks: 4 + Math.floor(rng() * 40),
     url: eventUrl(seller.platform, seller, category, id),
     items,
