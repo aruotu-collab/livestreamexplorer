@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { PageBack } from "@/components/PageBack";
 import { StreamCard } from "@/components/StreamCard";
 import { sellerStats } from "@/lib/intelligence";
 import { outboundUrl, platformLabel } from "@/lib/platforms";
@@ -11,10 +12,27 @@ export default function SellerPage() {
   const { user } = useStore();
   const { seller, upcoming } = sellerStats(slug);
 
-  if (!seller) return <p>Seller not found.</p>;
+  if (!seller) {
+    return (
+      <div className="space-y-6">
+        <PageBack href="/guide" label="Back to the Guide" trail={[{ href: "/tonight", label: "Tonight" }, { href: "/search", label: "Search" }]} />
+        <h1 className="font-display text-4xl">Seller not found.</h1>
+        <p className="text-paper-200/65">That seller page is gone. Use the Guide or search to find a live room.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
+      <PageBack
+        href={`/live/${seller.platform}`}
+        label={`Back to ${platformLabel(seller.platform)}`}
+        trail={[
+          { href: "/guide", label: "Guide" },
+          { href: "/tonight", label: "Tonight" },
+          { href: "/search", label: "Search" },
+        ]}
+      />
       <header className="rounded-3xl border border-white/8 bg-ink-900 p-8">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">
           {platformLabel(seller.platform)} seller

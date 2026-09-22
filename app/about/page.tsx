@@ -1,6 +1,9 @@
+import { PageBack } from "@/components/PageBack";
+
 export default function AboutPage() {
   return (
     <article className="prose-invert mx-auto max-w-3xl space-y-8">
+      <PageBack href="/" label="Back to home" trail={[{ href: "/pricing", label: "Pricing" }, { href: "/list-your-stream", label: "List a stream" }]} />
       <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">The company</p>
       <h1 className="font-display text-5xl leading-tight">Not a calendar website. A buyer-intelligence platform for livestream commerce.</h1>
       <p className="text-lg text-paper-200/70">

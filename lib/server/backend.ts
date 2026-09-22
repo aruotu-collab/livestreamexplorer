@@ -1,5 +1,4 @@
 import { Resend } from "resend";
-import { CATEGORIES } from "@/lib/catalog";
 import { renderTransactionalEmail, siteUrl } from "@/lib/server/email";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,8 +28,126 @@ async function supabaseInsert(table: string, row: Record<string, unknown>) {
   }
 }
 
+export async function supabaseSelect<T>(table: string, query: string) {
+  if (!supabaseUrl || !supabaseKey) return { rows: [] as T[], ok: false };
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+    },
+  });
+  if (!response.ok) return { rows: [] as T[], ok: false };
+  const rows = (await response.json()) as T[];
+  return { rows: Array.isArray(rows) ? rows : [], ok: true };
+}
+
+export type SiteEventRow = {
+  id?: string;
+  created_at?: string;
+  kind?: string;
+  path?: string | null;
+  referrer?: string | null;
+  referrer_host?: string | null;
+  ip?: string | null;
+  country?: string | null;
+  region?: string | null;
+  city?: string | null;
+  user_agent?: string | null;
+  visitor_id?: string | null;
+  email?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+};
+
+export type SignupRow = {
+  name?: string;
+  email?: string;
+  interests?: string[] | string | null;
+  created_at?: string;
+};
+
+export type BillingRow = {
+  email?: string;
+  plan?: string;
+  stripe_customer_id?: string | null;
+  event?: string;
+  cancel_at_period_end?: boolean;
+  current_period_end?: string | null;
+  created_at?: string;
+};
+
+export type ListingRow = {
+  platform?: string;
+  url?: string;
+  title?: string;
+  seller?: string;
+  starts_at?: string;
+  items?: string;
+  created_at?: string;
+};
+
+export async function recordPageView(row: SiteEventRow) {
+  try {
+    await supabaseInsert("site_events", {
+      kind: row.kind ?? "pageview",
+      path: row.path ?? "/",
+      referrer: row.referrer ?? "",
+      referrer_host: row.referrer_host ?? "",
+      ip: row.ip ?? "",
+      country: row.country ?? "",
+      region: row.region ?? "",
+      city: row.city ?? "",
+      user_agent: row.user_agent ?? "",
+      visitor_id: row.visitor_id ?? "",
+      email: row.email ?? "",
+      utm_source: row.utm_source ?? "",
+      utm_medium: row.utm_medium ?? "",
+      utm_campaign: row.utm_campaign ?? "",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function listSiteEvents(limit = 800) {
+  return supabaseSelect<SiteEventRow>(
+    "site_events",
+    `select=*&order=created_at.desc&limit=${Math.min(Math.max(limit, 1), 2000)}`,
+  );
+}
+
+export async function listSignups(limit = 200) {
+  const newest = await supabaseSelect<SignupRow>(
+    "signups",
+    `select=name,email,interests,created_at&order=created_at.desc&limit=${limit}`,
+  );
+  if (newest.ok) return newest;
+  return supabaseSelect<SignupRow>("signups", `select=name,email,interests&limit=${limit}`);
+}
+
+export async function listBillingEvents(limit = 100) {
+  const newest = await supabaseSelect<BillingRow>(
+    "billing_events",
+    `select=*&order=created_at.desc&limit=${limit}`,
+  );
+  if (newest.ok) return newest;
+  return supabaseSelect<BillingRow>("billing_events", `select=*&limit=${limit}`);
+}
+
+export async function listStreamListings(limit = 100) {
+  const newest = await supabaseSelect<ListingRow>(
+    "stream_listings",
+    `select=*&order=created_at.desc&limit=${limit}`,
+  );
+  if (newest.ok) return newest;
+  return supabaseSelect<ListingRow>("stream_listings", `select=*&limit=${limit}`);
+}
+
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!resendKey) return;
+  if (!resendKey) throw new Error("Email is not configured");
 
   const resend = new Resend(resendKey);
   const { error } = await resend.emails.send({
@@ -43,36 +160,51 @@ async function sendEmail(to: string, subject: string, html: string) {
   if (error) throw new Error(error.message);
 }
 
-export async function recordSignup(input: { name: string; email: string; interests: string[] }) {
-  await supabaseInsert("signups", {
-    name: input.name,
-    email: input.email.toLowerCase(),
-    interests: input.interests,
+export async function findSignup(email: string) {
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  const query = new URLSearchParams({
+    email: `eq.${email.trim().toLowerCase()}`,
+    select: "name,email,interests",
+    limit: "1",
   });
+  const response = await fetch(`${supabaseUrl}/rest/v1/signups?${query}`, {
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+    },
+  });
+  if (!response.ok) return null;
+  const rows = (await response.json()) as { name?: string; email?: string; interests?: string[] }[];
+  return rows[0] ?? null;
+}
 
+export async function sendMagicLink(input: { name: string; email: string; interests: string[]; token: string }) {
+  await sendEmail(
+    input.email,
+    "Sign in to LiveStream Explorer",
+    renderTransactionalEmail({
+      intro: "Use the secure link below to sign in to your LiveStream Explorer account.",
+      heading: "Sign in to LiveStream Explorer",
+      paragraphs: [
+        "This link is unique to you and should only be used to access your account. For security, please don't forward or share this email.",
+        "If you didn't request this sign-in link, you can safely ignore this email.",
+      ],
+      ctaLabel: "Sign in to LiveStream Explorer",
+      ctaHref: `${siteUrl}/auth/verify?token=${encodeURIComponent(input.token)}`,
+    }),
+  );
+}
+
+export async function recordSignup(input: { name: string; email: string; interests: string[] }) {
   try {
-    const interests =
-      input.interests
-        .map((slug) => CATEGORIES.find((category) => category.slug === slug)?.label ?? slug)
-        .filter(Boolean)
-        .join(", ") || "the categories you picked";
-
-    await sendEmail(
-      input.email,
-      "Your Watch Agent is ready",
-      renderTransactionalEmail({
-        intro: "Use the link below to open your LiveStream Explorer Watch Agent.",
-        heading: "Your Watch Agent is ready",
-        paragraphs: [
-          `This Watch Agent is unique to you. It is watching eBay Live and Whatnot for ${interests}.`,
-          "If you didn't create this account, you can safely ignore this email.",
-        ],
-        ctaLabel: "Open your Watch Agent",
-        ctaHref: `${siteUrl}/agents`,
-      }),
-    );
+    await supabaseInsert("signups", {
+      name: input.name,
+      email: input.email.toLowerCase(),
+      interests: input.interests,
+    });
   } catch {
-    // Persist the signup even if transactional email is not configured yet.
+    // Already signed up, or the table is not ready yet.
   }
 }
 

@@ -100,10 +100,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       user,
       hydrated,
       agentLimit,
-      signIn: (name, email, interests) => setUser(demoUser({ name, email, ...(interests ? { interests } : {}) })),
+      signIn: (name, email, interests) =>
+        setUser((current) => {
+          if (current && current.email.toLowerCase() === email.toLowerCase()) {
+            return {
+              ...current,
+              name,
+              email,
+              interests: interests?.length ? interests : current.interests,
+            };
+          }
+          return demoUser({ name, email, ...(interests?.length ? { interests } : {}) });
+        }),
       signOut: () => {
         localStorage.removeItem(KEY);
         setUser(null);
+        fetch("/api/auth/logout", { method: "POST" }).catch(() => {
+          /* local sign-out still stands */
+        });
       },
       setPlan: (plan, extras) =>
         setUser((current) =>

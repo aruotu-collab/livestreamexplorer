@@ -8,10 +8,11 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
-  @apply bg-ink-950 text-paper-50 antialiased;
+  @apply overflow-x-hidden bg-ink-950 text-paper-50 antialiased;
   background-image:
     radial-gradient(1200px 500px at 10% -10%, rgba(226, 177, 60, 0.08), transparent 50%),
     radial-gradient(900px 400px at 90% 0%, rgba(47, 212, 197, 0.05), transparent 45%),

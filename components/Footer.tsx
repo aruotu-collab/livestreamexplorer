@@ -14,7 +14,10 @@ export function Footer() {
         <div className="space-y-2 text-sm text-paper-200/70">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper-200/40">Explore</p>
           <Link className="block hover:text-paper-50" href="/guide">The Guide</Link>
-          <Link className="block hover:text-paper-50" href="/live/pokemon">Pokémon tonight</Link>
+          <Link className="block hover:text-paper-50" href="/tonight">Tonight</Link>
+          <Link className="block hover:text-paper-50" href="/calendar">7-day calendar</Link>
+          <Link className="block hover:text-paper-50" href="/search">Search</Link>
+          <Link className="block hover:text-paper-50" href="/live/pokemon">Pokémon</Link>
           <Link className="block hover:text-paper-50" href="/live/football-cards">Football cards</Link>
           {PLATFORMS.map((platform) => (
             <Link key={platform.slug} className="block hover:text-paper-50" href={`/live/${platform.slug}`}>
@@ -24,11 +27,13 @@ export function Footer() {
           ))}
         </div>
         <div className="space-y-2 text-sm text-paper-200/70">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper-200/40">Product</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper-200/40">Account</p>
+          <Link className="block hover:text-paper-50" href="/login">Sign in</Link>
+          <Link className="block hover:text-paper-50" href="/signup">Create free agent</Link>
+          <Link className="block hover:text-paper-50" href="/account">Account</Link>
           <Link className="block hover:text-paper-50" href="/pricing">Pricing</Link>
           <Link className="block hover:text-paper-50" href="/list-your-stream">List your stream</Link>
           <Link className="block hover:text-paper-50" href="/about">The strategy</Link>
-          <Link className="block hover:text-paper-50" href="/account">Account</Link>
         </div>
       </div>
       <p className="border-t border-white/5 py-4 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-paper-200/35">

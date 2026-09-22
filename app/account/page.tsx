@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { PageBack } from "@/components/PageBack";
+import { isAdminEmail } from "@/lib/admin";
 import { Boot, useStore } from "@/lib/store";
 import type { Plan } from "@/lib/types";
 
@@ -122,10 +124,16 @@ function AccountInner() {
   if (!user) {
     return (
       <div className="rounded-3xl border border-white/8 bg-ink-900 p-10">
-        <h1 className="font-display text-4xl">No account on this device yet.</h1>
-        <Link href="/signup" className="btn-gold mt-6">
-          Create one
-        </Link>
+        <PageBack href="/tonight" label="Back to tonight" />
+        <h1 className="mt-6 font-display text-4xl">No account on this device yet.</h1>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/signup" className="btn-gold">
+            Create one
+          </Link>
+          <Link href="/login" className="btn-ghost">
+            Sign in
+          </Link>
+        </div>
       </div>
     );
   }
@@ -137,6 +145,7 @@ function AccountInner() {
 
   return (
     <div className="space-y-8">
+      <PageBack href="/tonight" label="Back to tonight" trail={[{ href: "/pricing", label: "Pricing" }]} />
       <header>
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">Account</p>
         <h1 className="mt-2 font-display text-5xl">{user.name}</h1>
@@ -181,6 +190,7 @@ function AccountInner() {
         <Card href="/agents" title={`${user.agents.length} agents`} label="Watch Agents" />
         <Card href="/collection" title={`${user.collection.length} pieces`} label="Collection" />
         <Card href="/tonight" title={`${user.watchlist.length} watch items`} label="Tonight feed" />
+        {isAdminEmail(user.email) ? <Card href="/admin" title="Site progress" label="Admin" /> : null}
       </div>
       <div className="flex flex-wrap gap-3">
         <Link href="/pricing" className="btn-gold">

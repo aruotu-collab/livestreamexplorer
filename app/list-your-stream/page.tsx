@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { PageBack } from "@/components/PageBack";
 import { LIVE_PLATFORMS } from "@/lib/platforms";
 
 export default function ListStreamPage() {
@@ -40,6 +42,7 @@ export default function ListStreamPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-8">
+      <PageBack href="/" label="Back to home" trail={[{ href: "/tonight", label: "Tonight" }, { href: "/about", label: "The strategy" }]} />
       <header>
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">Seller-submitted data</p>
         <h1 className="mt-2 font-display text-5xl">List your stream. Free.</h1>
@@ -50,6 +53,14 @@ export default function ListStreamPage() {
       {done ? (
         <div className="rounded-3xl border border-teal/30 bg-ink-900 p-8">
           <p className="font-display text-3xl">Received. We will confirm title, category, time and products before it goes on the calendar.</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/tonight" className="btn-gold">
+              Back to tonight
+            </Link>
+            <Link href="/guide" className="btn-ghost">
+              Open the Guide
+            </Link>
+          </div>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-3 rounded-3xl border border-white/8 bg-ink-900 p-6">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { PageBack } from "@/components/PageBack";
 import { categoryLabel, sellerBySlug } from "@/lib/catalog";
 import { platformLabel } from "@/lib/platforms";
 import { comparables, getStream, opportunity } from "@/lib/intelligence";
@@ -17,7 +18,13 @@ export default function StreamPage() {
   const { user, toggleFavorite } = useStore();
 
   if (!stream) {
-    return <p>Stream not found.</p>;
+    return (
+      <div className="space-y-6">
+        <PageBack href="/tonight" label="Back to tonight" trail={[{ href: "/guide", label: "Guide" }, { href: "/search", label: "Search" }]} />
+        <h1 className="font-display text-4xl">Stream not found.</h1>
+        <p className="text-paper-200/65">That show is not on the calendar any more. Browse tonight or search for the seller.</p>
+      </div>
+    );
   }
 
   const seller = sellerBySlug(stream.sellerSlug);
@@ -26,6 +33,15 @@ export default function StreamPage() {
 
   return (
     <article className="space-y-10">
+      <PageBack
+        href={`/live/${stream.category}`}
+        label={`Back to ${categoryLabel(stream.category)}`}
+        trail={[
+          { href: "/guide", label: "Guide" },
+          { href: "/tonight", label: "Tonight" },
+          { href: `/seller/${stream.sellerSlug}`, label: seller?.name ?? "Seller" },
+        ]}
+      />
       <header className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrowseLinks } from "@/components/PageBack";
 import { StreamCard } from "@/components/StreamCard";
 import { tonightPicks } from "@/lib/intelligence";
 import { useLiveFeed } from "@/lib/live-feed";
@@ -28,6 +29,9 @@ function TonightInner() {
         <p className="mt-3 max-w-2xl text-paper-200/65">
           Not more content. Less noise. We keep the shows that match your interests, watchlists and collection — and filter the rest.
         </p>
+        <div className="mt-4">
+          <BrowseLinks current="tonight" />
+        </div>
       </header>
 
       {!user ? (

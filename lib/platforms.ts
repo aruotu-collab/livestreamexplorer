@@ -75,6 +75,21 @@ const EBAY_EVENT_ID = /^[A-Za-z0-9]{10,}$/;
 const WHATNOT_LIVE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 
+const EBAY_LIVES: Partial<Record<Category, string[]>> = {
+  pokemon: ["SvCq5HNzkB1NoBj8", "CECC48X2DuwqWPFI"],
+  sneakers: ["YODpl7msgzs0V82A", "0bz2S0xsaWlSZZLy"],
+  fashion: ["P5HYGejn3UXyjzz6", "28XvDcC52nzqvWOD"],
+  electronics: ["keAQJKsPfexPOmj4", "VZr6STuRYpZEYGVh"],
+  vintage: ["SvCq5HNzkB1NoBj8", "P5HYGejn3UXyjzz6"],
+  coins: ["eLvQHX3H1YXzQ40N", "7wpSF9YYtgUFNdgR"],
+  memorabilia: ["XI6ydYo5ACLiHYdq", "VZr6STuRYpZEYGVh"],
+  "football-cards": ["CECC48X2DuwqWPFI", "SvCq5HNzkB1NoBj8"],
+  "basketball-cards": ["CECC48X2DuwqWPFI", "SvCq5HNzkB1NoBj8"],
+  luxury: ["P5HYGejn3UXyjzz6", "28XvDcC52nzqvWOD"],
+  watches: ["eLvQHX3H1YXzQ40N", "7wpSF9YYtgUFNdgR"],
+  comics: ["SvCq5HNzkB1NoBj8", "CECC48X2DuwqWPFI"],
+};
+
 const WHATNOT_LIVES: Partial<Record<Category, string[]>> = {
   sneakers: [
     "116f8757-3ec7-4bd0-8770-c206c0a5b7a7",
@@ -94,13 +109,20 @@ const WHATNOT_LIVES: Partial<Record<Category, string[]>> = {
   fashion: ["c1ce3e34-6229-4c03-8460-cc40407e1312", "43ce73f7-1e35-4757-bcba-efa6ad7b7f92"],
 };
 
-function pickWhatnotLiveId(category?: string | null, seed?: string | null) {
-  const pool = WHATNOT_LIVES[(category as Category) ?? "pokemon"] ?? WHATNOT_LIVES.pokemon ?? [];
-  if (!pool.length) return null;
+function pickFromPool(pool: string[] | undefined, seed?: string | null) {
+  if (!pool?.length) return null;
   if (!seed) return pool[0];
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   return pool[hash % pool.length];
+}
+
+function pickWhatnotLiveId(category?: string | null, seed?: string | null) {
+  return pickFromPool(WHATNOT_LIVES[(category as Category) ?? "pokemon"] ?? WHATNOT_LIVES.pokemon, seed);
+}
+
+function pickEbayLiveId(category?: string | null, seed?: string | null) {
+  return pickFromPool(EBAY_LIVES[(category as Category) ?? "pokemon"] ?? EBAY_LIVES.electronics, seed);
 }
 
 export function outboundUrl(
@@ -111,8 +133,10 @@ export function outboundUrl(
 
   if (platform === "ebay") {
     if (EBAY_EVENT_ID.test(eventId) && !/^ebay/i.test(eventId)) {
-      return `https://www.ebay.co.uk/ebaylive/events/${eventId}`;
+      return `https://www.ebay.co.uk/ebaylive/events/${eventId}/stream`;
     }
+    const liveId = pickEbayLiveId(opts?.category, opts?.seed);
+    if (liveId) return `https://www.ebay.co.uk/ebaylive/events/${liveId}/stream`;
     return platformHubUrl("ebay");
   }
 

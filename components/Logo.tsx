@@ -18,7 +18,7 @@ export function Logo({
         <span className="block font-mono text-[9px] uppercase tracking-[0.22em] text-paper-200/60">Buyer intelligence</span>
       </span>
       {region || time ? (
-        <span className="border-l border-white/10 pl-2.5 leading-none">
+        <span className="hidden border-l border-white/10 pl-2.5 leading-none sm:block">
           {region ? (
             <span className="block font-mono text-[10px] uppercase tracking-[0.18em] text-gold">{region}</span>
           ) : null}

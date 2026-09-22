@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { BrowseLinks, PageBack } from "@/components/PageBack";
 import { StreamCard } from "@/components/StreamCard";
 import { CATEGORIES } from "@/lib/catalog";
 import { useLiveFeed } from "@/lib/live-feed";
@@ -24,12 +25,16 @@ export default function LiveHubPage() {
 
   return (
     <div className="space-y-8">
+      <PageBack href="/tonight" label="Back to tonight" />
       <header>
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">
           {platform ? "Platform" : "Public calendar page"}
         </p>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl">{title} livestreams</h1>
         <p className="mt-3 max-w-2xl text-paper-200/65">{blurb}</p>
+        <div className="mt-4">
+          <BrowseLinks />
+        </div>
       </header>
       {platform?.status === "coming-soon" ? (
         <div className="rounded-3xl border border-dashed border-teal/30 bg-ink-900 p-8">

@@ -146,9 +146,14 @@ function Gate({ title, body }: { title: string; body: string }) {
     <div className="rounded-3xl border border-white/8 bg-ink-900 p-10">
       <h1 className="font-display text-5xl">{title}</h1>
       <p className="mt-4 max-w-xl text-paper-200/65">{body}</p>
-      <Link href="/signup" className="btn-gold mt-6">
-        Create free account
-      </Link>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link href="/signup" className="btn-gold">
+          Create free account
+        </Link>
+        <Link href="/tonight" className="btn-ghost">
+          Back to tonight
+        </Link>
+      </div>
     </div>
   );
 }

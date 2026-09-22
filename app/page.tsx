@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { BrowseLinks } from "@/components/PageBack";
 import { ScannerBar } from "@/components/ScannerBar";
 import { StreamRail } from "@/components/StreamRail";
 import { bargainStreams, collectionMatches, interestStreams } from "@/lib/intelligence";
@@ -47,6 +48,9 @@ export default function HomePage() {
           <p className="mt-5 max-w-xl text-lg text-paper-200/70">
             The calendar is free. The product is intelligence: which shows matter, which items are actually good buys, and when the thing you want appears live.
           </p>
+          <div className="mt-5">
+            <BrowseLinks />
+          </div>
         </div>
         <div className="rounded-3xl border border-white/8 bg-ink-900 p-5 shadow-glow">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper-200/40">Live now</p>

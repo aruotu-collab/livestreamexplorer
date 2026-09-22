@@ -23,7 +23,10 @@ function WatchlistInner() {
     return (
       <div className="rounded-3xl border border-white/8 bg-ink-900 p-10">
         <h1 className="font-display text-4xl">Follow things, not just sellers.</h1>
-        <Link href="/signup" className="btn-gold mt-6">Create account</Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/signup" className="btn-gold">Create account</Link>
+          <Link href="/tonight" className="btn-ghost">Back to tonight</Link>
+        </div>
       </div>
     );
   }

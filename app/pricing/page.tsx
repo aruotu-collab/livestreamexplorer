@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PageBack } from "@/components/PageBack";
 import { Boot, useStore } from "@/lib/store";
 import type { Plan } from "@/lib/types";
 
@@ -151,6 +152,7 @@ function PricingInner() {
 
   return (
     <div className="space-y-10">
+      <PageBack href={user ? "/account" : "/tonight"} label={user ? "Back to account" : "Back to tonight"} />
       <header className="max-w-2xl">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">Monetisation</p>
         <h1 className="mt-2 font-display text-5xl">Don&apos;t pay for a calendar. Pay for fewer wasted hours.</h1>

@@ -27,9 +27,14 @@ function CollectionInner() {
         <p className="mt-4 max-w-xl text-paper-200/65">
           Track what you own, what you still need, and which livestreams contain the gaps.
         </p>
-        <Link href="/signup" className="btn-gold mt-6">
-          Create free account
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/signup" className="btn-gold">
+            Create free account
+          </Link>
+          <Link href="/tonight" className="btn-ghost">
+            Back to tonight
+          </Link>
+        </div>
       </div>
     );
   }

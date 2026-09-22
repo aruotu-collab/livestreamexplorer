@@ -5,6 +5,7 @@ import "./globals.css";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { PageTracker } from "@/components/PageTracker";
 import { LiveFeedProvider } from "@/lib/live-feed";
 import { StoreProvider } from "@/lib/store";
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-GB">
       <body className={`${display.variable} ${sans.variable} ${mono.variable} font-sans`}>
         <GoogleAnalytics />
+        <PageTracker />
         <StoreProvider>
           <LiveFeedProvider>
             <Suspense fallback={<header className="sticky top-0 z-40 h-[148px] border-b border-white/5 bg-ink-950/80" />}>

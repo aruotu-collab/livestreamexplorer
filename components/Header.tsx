@@ -6,6 +6,8 @@ import { useEffect, useRef } from "react";
 import { CATEGORIES, isCategorySlug } from "@/lib/catalog";
 import { useLiveFeed } from "@/lib/live-feed";
 import { PLATFORMS, isPlatformSlug, platformBySlug } from "@/lib/platforms";
+import { isAdminEmail } from "@/lib/admin";
+import { isBrowsePath } from "@/lib/nav";
 import { Logo } from "./Logo";
 import { useStore } from "@/lib/store";
 import { formatZoneClock } from "@/lib/zone";
@@ -58,12 +60,10 @@ export function Header() {
   const guidePlatform = onGuide && isPlatformSlug(platformParam) ? platformParam : undefined;
   const guideCategory = onGuide && isCategorySlug(categoryParam) ? categoryParam : undefined;
   const activePlatform = onGuide ? (guidePlatform ? platformBySlug(guidePlatform) : undefined) : routePlatform;
+  const showBrowseChips = isBrowsePath(path);
   const allPlatformsActive = onGuide
     ? !guidePlatform
-    : pathMatches(path, "/") ||
-      pathMatches(path, "/tonight") ||
-      pathMatches(path, "/calendar") ||
-      (path.startsWith("/live/") && !routePlatform);
+    : pathMatches(path, "/") || pathMatches(path, "/tonight") || pathMatches(path, "/calendar");
   const countSource = onGuide
     ? catalog.filter((stream) => !guidePlatform || stream.platform === guidePlatform)
     : live;
@@ -94,20 +94,22 @@ export function Header() {
     return () => rows.forEach((row) => row.removeEventListener("wheel", onWheel));
   }, []);
 
+  const planLabel = user?.plan === "pro" ? "Pro" : user?.plan === "collector" ? "Collector" : "Free";
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="shrink-0">
+    <header className="sticky top-0 z-40 overflow-x-hidden border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+        <Link href="/" className="min-w-0 shrink-0">
           <Logo region={zoneLabel} time={formatZoneClock(clock, timeZone)} />
         </Link>
-        <nav className="hidden flex-wrap items-center justify-end gap-0.5 lg:flex">
+        <nav className="hidden min-w-0 flex-1 items-center justify-center overflow-x-auto md:flex">
           {NAV.map((item) => {
             const active = pathMatches(path, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm ${
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1.5 text-sm xl:px-2.5 ${
                   active ? "bg-ink-700 text-paper-50" : "text-paper-200/70 hover:text-paper-50"
                 }`}
               >
@@ -117,26 +119,38 @@ export function Header() {
             );
           })}
         </nav>
-        <div className="flex items-center gap-2">
-          <Link href="/search" className="btn-ghost hidden sm:inline-flex">
+        <div className="flex shrink-0 items-center gap-2">
+          <Link href="/search" className="btn-ghost px-2.5 sm:px-3">
             Search
           </Link>
+          {hydrated && user && isAdminEmail(user.email) ? (
+            <Link
+              href="/admin"
+              className={`hidden text-sm md:inline ${
+                pathMatches(path, "/admin") ? "text-gold" : "text-gold/80 hover:text-gold"
+              }`}
+            >
+              Admin
+            </Link>
+          ) : null}
           {hydrated && user ? (
-            <Link href="/account" className="btn-gold">
-              {user.name} · {user.plan === "pro" ? "Pro" : user.plan === "collector" ? "Collector" : "Free"}
-              {user.cancelAtPeriodEnd && user.currentPeriodEnd
-                ? ` · ends ${new Date(user.currentPeriodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
-                : ""}
+            <Link href="/account" className="btn-gold max-w-[10.5rem] truncate sm:max-w-[14rem]">
+              {user.name} · {planLabel}
             </Link>
           ) : (
-            <Link href="/signup" className="btn-gold">
-              Create free agent
-            </Link>
+            <>
+              <Link href="/login" className="hidden text-sm text-paper-200/70 hover:text-paper-50 md:inline">
+                Sign in
+              </Link>
+              <Link href="/signup" className="btn-gold whitespace-nowrap">
+                Create free agent
+              </Link>
+            </>
           )}
         </div>
       </div>
-      <nav className="hide-scroll flex gap-1 overflow-x-auto border-t border-white/5 px-4 py-2 lg:hidden">
-        {NAV.map((item) => {
+      <nav className="hide-scroll flex gap-1 overflow-x-auto border-t border-white/5 px-4 py-2 md:hidden">
+          {NAV.map((item) => {
           const active = pathMatches(path, item.href);
           return (
             <Link
@@ -151,8 +165,29 @@ export function Header() {
             </Link>
           );
         })}
+        <Link
+          href="/search"
+          className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs ${
+            pathMatches(path, "/search") ? "bg-ink-700 text-paper-50" : "text-paper-200/60"
+          }`}
+        >
+          Search
+        </Link>
+        {hydrated && user && isAdminEmail(user.email) ? (
+          <Link
+            href="/admin"
+            className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs ${
+              pathMatches(path, "/admin") ? "bg-gold text-ink-950" : "text-gold"
+            }`}
+          >
+            Admin
+          </Link>
+        ) : null}
       </nav>
-      <nav ref={platformRow} className="category-scroll flex gap-2 border-t border-white/5 px-4 py-2">
+      {showBrowseChips ? (
+      <>
+      <div className="border-t border-white/5">
+      <nav ref={platformRow} className="category-scroll mx-auto flex max-w-6xl gap-2 px-4 py-2">
         <Link
           href={onGuide ? guideHref("all", guideCategory) : "/"}
           aria-current={allPlatformsActive ? "page" : undefined}
@@ -185,7 +220,9 @@ export function Header() {
           );
         })}
       </nav>
-      <nav ref={categoryRow} className="category-scroll flex gap-2 border-t border-white/5 px-4 py-2">
+      </div>
+      <div className="border-t border-white/5">
+      <nav ref={categoryRow} className="category-scroll mx-auto flex max-w-6xl gap-2 px-4 py-2">
         {onGuide ? (
           <Link
             href={guideHref(guidePlatform, "all")}
@@ -216,6 +253,9 @@ export function Header() {
           );
         })}
       </nav>
+      </div>
+      </>
+      ) : null}
     </header>
   );
 }

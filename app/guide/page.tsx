@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { BrowseLinks } from "@/components/PageBack";
 import { categoryLabel, isCategorySlug, sellerBySlug } from "@/lib/catalog";
 import {
   BANDS,
@@ -96,6 +97,9 @@ function GuideGrid() {
         <p className="mt-3 text-paper-200/65">
           Fourteen days, four dayparts. Scan when rooms open the way you would scan a TV guide — then jump out to eBay Live or Whatnot.
         </p>
+        <div className="mt-4">
+          <BrowseLinks current="guide" />
+        </div>
       </header>
 
       <p className="font-mono text-xs text-paper-200/45">
