@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageBack } from "@/components/PageBack";
 import { categoryLabel, sellerBySlug } from "@/lib/catalog";
-import { isVerifiedLiveUrl, outboundCta, platformLabel } from "@/lib/platforms";
+import { isVerifiedLiveUrl, isWatchPlatform, outboundCta, platformLabel } from "@/lib/platforms";
 import { comparables, getStream, opportunity } from "@/lib/intelligence";
 import { useStore } from "@/lib/store";
 import { dealPct } from "@/lib/intelligence";
@@ -36,14 +36,21 @@ export default function StreamPage() {
   return (
     <article className="space-y-10">
       <PageBack
-        href={`/live/${stream.category}`}
-        label={`Back to ${categoryLabel(stream.category)}`}
-        trail={[
-          { href: "/guide", label: "Guide" },
-          { href: "/tonight", label: "Tonight" },
-          { href: "/items", label: "Items" },
-          { href: `/seller/${stream.sellerSlug}`, label: seller?.name ?? "Seller" },
-        ]}
+        href={isWatchPlatform(stream.platform) ? "/watch" : `/live/${stream.category}`}
+        label={isWatchPlatform(stream.platform) ? "Back to Watch live" : `Back to ${categoryLabel(stream.category)}`}
+        trail={
+          isWatchPlatform(stream.platform)
+            ? [
+                { href: `/live/${stream.platform}`, label: platformLabel(stream.platform) },
+                { href: `/seller/${stream.sellerSlug}`, label: seller?.name ?? "Creator" },
+              ]
+            : [
+                { href: "/guide", label: "Guide" },
+                { href: "/tonight", label: "Tonight" },
+                { href: "/items", label: "Items" },
+                { href: `/seller/${stream.sellerSlug}`, label: seller?.name ?? "Seller" },
+              ]
+        }
       />
       <header className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
@@ -80,7 +87,9 @@ export default function StreamPage() {
             </Link>
           </div>
           <p className="mt-3 text-xs text-paper-200/45">
-            Sends you to {platformLabel(stream.platform)} to find the room that is actually on. We do not host the stream.
+            {verifiedRoom
+              ? `Opens this exact ${platformLabel(stream.platform)} room. We do not host the stream.`
+              : `Sends you to ${platformLabel(stream.platform)} to find the room that is actually on. We do not host the stream.`}
           </p>
         </div>
         <aside className="rounded-3xl border border-gold/20 bg-ink-900 p-6 shadow-glow">
@@ -100,6 +109,14 @@ export default function StreamPage() {
         </aside>
       </header>
 
+      {isWatchPlatform(stream.platform) ? (
+      <section className="rounded-2xl border border-white/8 bg-ink-900 p-6">
+        <h2 className="font-display text-3xl">Watch live</h2>
+        <p className="mt-3 max-w-2xl text-paper-200/65">
+          This is not a shop. There is no item calendar and no lots. Jump in on {platformLabel(stream.platform)} to watch the room that is on.
+        </p>
+      </section>
+      ) : (
       <section>
         <div className="flex items-end justify-between">
           <h2 className="font-display text-3xl">
@@ -195,6 +212,7 @@ export default function StreamPage() {
         </>
         )}
       </section>
+      )}
     </article>
   );
 }

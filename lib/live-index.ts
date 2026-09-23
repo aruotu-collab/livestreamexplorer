@@ -1,8 +1,9 @@
 import { outboundUrl } from "./platforms";
 import { DEFAULT_TIME_ZONE } from "./zone";
-import type { Category, Seller, Stream, StreamStatus } from "./types";
+import type { Category, Platform, Seller, Stream, StreamStatus } from "./types";
 
 export type IndexedRoom = {
+  platform: Platform;
   eventId: string;
   title: string;
   sellerName: string;
@@ -116,6 +117,7 @@ function walkEvents(node: unknown, rooms: IndexedRoom[] = []): IndexedRoom[] {
     const profile = (host.sellerProfile as Record<string, unknown> | undefined)?.store as Record<string, unknown> | undefined;
     const tags = ((value.tags as Array<{ name?: string }> | undefined) ?? []).map((tag) => tag.name).filter(Boolean) as string[];
     rooms.push({
+      platform: "ebay",
       eventId: value.liveEventId,
       title: String(value.title ?? "eBay Live"),
       sellerName: String(profile?.displayName || host.userAccountName || "eBay Live seller"),
@@ -153,6 +155,7 @@ function parseEbayMarkdown(markdown: string, state: "LIVE" | "UPCOMING" = "LIVE"
     const viewers = Number(window.match(new RegExp(`\\[(\\d+)\\]\\(https://www\\.ebay\\.co\\.uk/ebaylive/events/${eventId}`))?.[1] || 0);
     const tags = [...window.matchAll(/ebaylive\/tags\/[^)]+\)\s*([A-Za-z0-9£& /+-]+)/g)].map((match) => match[1].trim());
     rooms.set(eventId, {
+      platform: "ebay",
       eventId,
       title: title.replace(/^Image \d+:\s*/, ""),
       sellerName: sellerName.replace(/^Image \d+:\s*/, ""),
@@ -236,17 +239,22 @@ async function fetchEbayMarkdown(path: string, state: "LIVE" | "UPCOMING" = "LIV
   return parseEbayMarkdown(await res.text(), state);
 }
 
+function roomKey(room: IndexedRoom) {
+  return `${room.platform}:${room.eventId}`;
+}
+
 function mergeRooms(groups: IndexedRoom[][]) {
   const rooms = new Map<string, IndexedRoom>();
   for (const group of groups) {
     for (const room of group) {
       if (!room.eventId || !room.title) continue;
-      const current = rooms.get(room.eventId);
+      const key = roomKey(room);
+      const current = rooms.get(key);
       if (!current) {
-        rooms.set(room.eventId, room);
+        rooms.set(key, room);
         continue;
       }
-      rooms.set(room.eventId, {
+      rooms.set(key, {
         ...current,
         ...room,
         shopHandle: room.shopHandle || current.shopHandle,
@@ -261,16 +269,24 @@ function mergeRooms(groups: IndexedRoom[][]) {
   return [...rooms.values()];
 }
 
+function platformNoun(platform: Platform) {
+  if (platform === "ebay") return "eBay Live";
+  if (platform === "whatnot") return "Whatnot";
+  if (platform === "youtube") return "YouTube";
+  return "TikTok";
+}
+
 export function roomsToStreams(rooms: IndexedRoom[]): { streams: Stream[]; sellers: Seller[] } {
   const sellers = new Map<string, Seller>();
   const streams = rooms.map((room) => {
     const category = inferCategory(room.title, room.tags);
-    const slug = `ebay-${slugify(room.sellerHandle || room.sellerName)}`;
+    const slug = `${room.platform}-${slugify(room.sellerHandle || room.sellerName)}`;
+    const noun = platformNoun(room.platform);
     if (!sellers.has(slug)) {
       sellers.set(slug, {
         slug,
         name: room.sellerName,
-        platform: "ebay",
+        platform: room.platform,
         handle: room.shopHandle,
         followers: 0,
         bookmarks: room.viewers ?? 0,
@@ -278,8 +294,8 @@ export function roomsToStreams(rooms: IndexedRoom[]): { streams: Stream[]; selle
         showsHosted: 1,
         bio:
           room.state === "UPCOMING"
-            ? `${room.sellerName} has an upcoming eBay Live show.`
-            : `${room.sellerName} is live on eBay Live.`,
+            ? `${room.sellerName} has an upcoming ${noun} show.`
+            : `${room.sellerName} is live on ${noun}.`,
         specialties: [category],
       });
     }
@@ -289,29 +305,179 @@ export function roomsToStreams(rooms: IndexedRoom[]): { streams: Stream[]; selle
       : new Date(Date.now() + (upcoming ? 60 * 60 * 1000 : -12 * 60 * 1000));
     const status: StreamStatus = upcoming ? "upcoming" : "live";
     return {
-      id: `live-ebay-${room.eventId}`,
+      id: `live-${room.platform}-${room.eventId}`,
       title: room.title,
       description:
         room.description ||
-        (upcoming
-          ? `${room.sellerName} is scheduled on eBay Live.`
-          : `${room.sellerName} is live on eBay Live right now.`),
-      platform: "ebay" as const,
+        (upcoming ? `${room.sellerName} is scheduled on ${noun}.` : `${room.sellerName} is live on ${noun} right now.`),
+      platform: room.platform,
       sellerSlug: slug,
       sellerHandle: room.shopHandle,
       category,
-      tags: [category, "ebay", "verified", upcoming ? "upcoming" : "live", ...room.tags.map((tag) => tag.toLowerCase())],
+      tags: [category, room.platform, "verified", upcoming ? "upcoming" : "live", ...room.tags.map((tag) => tag.toLowerCase())],
       startsAt: start.toISOString(),
       status,
       thumbnailHue: hue(room.eventId),
       itemCount: 0,
       viewers: room.viewers,
       bookmarks: room.viewers ?? 0,
-      url: outboundUrl("ebay", { eventId: room.eventId }),
+      url: outboundUrl(room.platform, { eventId: room.eventId }),
       items: [],
     };
   });
   return { streams, sellers: [...sellers.values()] };
+}
+
+function parseViewers(text?: string) {
+  if (!text) return undefined;
+  const match = text.replace(/,/g, "").match(/([\d.]+)\s*([kmb])?/i);
+  if (!match) return undefined;
+  const value = Number(match[1]);
+  if (!Number.isFinite(value)) return undefined;
+  const unit = match[2]?.toLowerCase();
+  if (unit === "k") return Math.round(value * 1000);
+  if (unit === "m") return Math.round(value * 1_000_000);
+  if (unit === "b") return Math.round(value * 1_000_000_000);
+  return Math.round(value);
+}
+
+function youtubeText(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const node = value as { simpleText?: string; runs?: Array<{ text?: string }> };
+  if (typeof node.simpleText === "string") return node.simpleText;
+  const run = node.runs?.map((item) => item.text).filter(Boolean).join(" ");
+  return run || undefined;
+}
+
+function isYoutubeLiveCard(value: Record<string, unknown>) {
+  const blob = JSON.stringify(value.thumbnailOverlays ?? value.badges ?? "");
+  if (/"text":"LIVE"/i.test(blob)) return true;
+  const viewers = `${youtubeText(value.viewCountText) ?? ""} ${youtubeText(value.shortViewCountText) ?? ""}`;
+  return /watching/i.test(viewers);
+}
+
+function walkYoutubeLives(node: unknown, rooms: IndexedRoom[] = [], assumeLive = false): IndexedRoom[] {
+  if (!node || typeof node !== "object") return rooms;
+  const value = node as Record<string, unknown>;
+  const videoId = typeof value.videoId === "string" ? value.videoId : typeof value.videoID === "string" ? value.videoID : "";
+  const title = youtubeText(value.title) ?? youtubeText(value.headline);
+  const sellerName =
+    youtubeText(value.shortBylineText) ?? youtubeText(value.ownerText) ?? youtubeText(value.longBylineText) ?? "YouTube Live";
+  if (
+    /^[A-Za-z0-9_-]{11}$/.test(videoId) &&
+    title &&
+    title.length >= 3 &&
+    !/^(Search filters|Keyboard shortcuts)$/i.test(title) &&
+    (assumeLive || isYoutubeLiveCard(value))
+  ) {
+    rooms.push({
+      platform: "youtube",
+      eventId: videoId,
+      title,
+      sellerName,
+      sellerHandle: sellerName,
+      shopHandle: sellerName,
+      viewers: parseViewers(youtubeText(value.viewCountText) ?? youtubeText(value.shortViewCountText)),
+      tags: ["watch"],
+      state: "LIVE",
+    });
+  }
+  for (const child of Object.values(value)) {
+    if (Array.isArray(child)) child.forEach((item) => walkYoutubeLives(item, rooms, assumeLive));
+    else walkYoutubeLives(child, rooms, assumeLive);
+  }
+  return rooms;
+}
+
+async function fetchYoutubeRooms(): Promise<IndexedRoom[]> {
+  const res = await fetch("https://www.youtube.com/live", {
+    headers: { "user-agent": UA, "accept-language": "en-GB,en;q=0.9", accept: "text/html" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) return [];
+  const html = await res.text();
+  const rooms: IndexedRoom[][] = [];
+  const initial = html.match(/var ytInitialData = (\{.+?\});<\/script>/s)?.[1];
+  if (initial) {
+    try {
+      rooms.push(walkYoutubeLives(JSON.parse(initial)));
+    } catch {
+      // Fall through to InnerTube search.
+    }
+  }
+
+  const key = html.match(/"INNERTUBE_API_KEY":"([^"]+)"/)?.[1] ?? "";
+  const version = html.match(/"INNERTUBE_CLIENT_VERSION":"([^"]+)"/)?.[1] ?? "";
+  if (key) {
+    try {
+      const search = await fetch(`https://www.youtube.com/youtubei/v1/search?prettyPrint=false&key=${key}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://www.youtube.com",
+          referer: "https://www.youtube.com/live",
+          "user-agent": UA,
+          "accept-language": "en-GB,en;q=0.9",
+        },
+        body: JSON.stringify({
+          context: { client: { clientName: "WEB", clientVersion: version || "2.20240901.00.00", hl: "en", gl: "GB" } },
+          query: "live",
+          params: "EgJAAQ%3D%3D",
+        }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(15000),
+      });
+      if (search.ok) rooms.push(walkYoutubeLives(await search.json(), [], true));
+    } catch {
+      // Keep the /live board if search is blocked.
+    }
+  }
+
+  return mergeRooms(rooms)
+    .filter((room) => room.platform === "youtube")
+    .sort((a, b) => (b.viewers ?? 0) - (a.viewers ?? 0))
+    .slice(0, 30);
+}
+
+function parseTiktokRooms(text: string): IndexedRoom[] {
+  const rooms = new Map<string, IndexedRoom>();
+  const handles = [
+    ...text.matchAll(/tiktok\.com\/@([A-Za-z0-9._]{2,24})\/live/gi),
+    ...text.matchAll(/"uniqueId":"([A-Za-z0-9._]{2,24})"/g),
+  ];
+  for (const match of handles) {
+    const handle = match[1];
+    if (!handle || rooms.has(handle)) continue;
+    const at = text.indexOf(handle);
+    const window = text.slice(Math.max(0, at - 180), at + 220);
+    if (!/live|isLive":true|roomId/i.test(window) && !/\/live/i.test(match[0])) continue;
+    const title =
+      window.match(/"nickname":"([^"]{2,80})"/)?.[1] ||
+      window.match(/"title":"([^"]{2,80})"/)?.[1] ||
+      `@${handle} is live`;
+    rooms.set(handle, {
+      platform: "tiktok",
+      eventId: handle,
+      title,
+      sellerName: title.replace(/\s+is live$/i, ""),
+      sellerHandle: handle,
+      shopHandle: handle,
+      tags: ["watch"],
+      state: "LIVE",
+    });
+  }
+  return [...rooms.values()].slice(0, 24);
+}
+
+async function fetchTiktokRooms(): Promise<IndexedRoom[]> {
+  const res = await fetch("https://www.tiktok.com/live", {
+    headers: { "user-agent": UA, "accept-language": "en-GB,en;q=0.9", accept: "text/html" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!res.ok) return [];
+  return parseTiktokRooms(await res.text());
 }
 
 let cache: { at: number; streams: Stream[]; sellers: Seller[]; source: string } | null = null;
@@ -320,36 +486,35 @@ const CACHE_MS = 90_000;
 export async function getIndexedLiveRooms() {
   if (cache && Date.now() - cache.at < CACHE_MS) return cache;
   const groups: IndexedRoom[][] = [];
-  let source = "none";
+  const sources: string[] = [];
 
   try {
     const session = await fetchHubSession();
     if (session.token) {
       const graphqlRooms = await Promise.all(EBAY_CHANNELS.map((channel) => fetchEbayGraphql(channel, session.token, session.cookies)));
       groups.push(...graphqlRooms);
-      if (groups.some((group) => group.length)) source = "ebay-graphql";
+      if (graphqlRooms.some((group) => group.length)) sources.push("ebay-graphql");
     }
   } catch {
     // Fall through to the public hub reader.
   }
 
-  try {
-    const [hub, upcoming] = await Promise.all([
-      fetchEbayMarkdown("/ebaylive", "LIVE"),
-      fetchEbayMarkdown("/ebaylive/upcoming-events", "UPCOMING"),
-    ]);
-    groups.push(hub, upcoming);
-    if (hub.length || upcoming.length) {
-      source = source === "none" ? "ebay-hub" : `${source}+hub`;
-    }
-  } catch {
-    // Keep whatever GraphQL already returned.
-  }
+  const extras = await Promise.allSettled([
+    fetchEbayMarkdown("/ebaylive", "LIVE"),
+    fetchEbayMarkdown("/ebaylive/upcoming-events", "UPCOMING"),
+    fetchYoutubeRooms(),
+    fetchTiktokRooms(),
+  ]);
+  const [hub, upcoming, youtube, tiktok] = extras.map((result) => (result.status === "fulfilled" ? result.value : []));
+  groups.push(hub, upcoming, youtube, tiktok);
+  if (hub.length || upcoming.length) sources.push("ebay-hub");
+  if (youtube.length) sources.push("youtube");
+  if (tiktok.length) sources.push("tiktok");
 
   const rooms = mergeRooms(groups);
   if (!rooms.length && cache) return cache;
   const mapped = roomsToStreams(rooms);
   registerIndexedSellers(mapped.sellers);
-  cache = { at: Date.now(), source, ...mapped };
+  cache = { at: Date.now(), source: sources.join("+") || "none", ...mapped };
   return cache;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { categoryLabel, sellerBySlug } from "@/lib/catalog";
-import { isVerifiedLiveUrl, outboundCta, platformLabel } from "@/lib/platforms";
+import { isVerifiedLiveUrl, isWatchPlatform, outboundCta, platformLabel } from "@/lib/platforms";
 import { dealPct, opportunity } from "@/lib/intelligence";
 import { useOptionalFeed } from "@/lib/live-feed";
 import { formatClock, formatCountdown, formatElapsed, formatWhen, gbp, msUntil, now } from "@/lib/time";
@@ -77,8 +77,11 @@ export function StreamCard({
       </div>
       <div className="flex flex-1 flex-col gap-1 px-3 py-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-paper-200/45">
-          {categoryLabel(stream.category)} · {stream.itemCount} {stream.itemCount === 1 ? "item" : "items"}
-          {fromPrice !== null ? ` · from ${gbp(fromPrice)}` : ""}
+          {isWatchPlatform(stream.platform)
+            ? "Watch live · no shop lots"
+            : `${categoryLabel(stream.category)} · ${stream.itemCount} ${stream.itemCount === 1 ? "item" : "items"}${
+                fromPrice !== null ? ` · from ${gbp(fromPrice)}` : ""
+              }`}
         </p>
         <h3 className={`font-display text-[1.2rem] leading-tight ${live ? "group-hover:text-live" : "group-hover:text-gold"}`}>
           {stream.title}
@@ -94,7 +97,11 @@ export function StreamCard({
           </p>
         ) : live ? (
           <p className="text-sm text-paper-200/55">
-            {verifiedRoom ? "Room is open · bids happening now" : "Open the live board and pick the room that is on"}
+            {verifiedRoom
+              ? isWatchPlatform(stream.platform)
+                ? "Room is open · jump in to watch"
+                : "Room is open · bids happening now"
+              : "Open the live board and pick the room that is on"}
           </p>
         ) : null}
         {typeof matchCount === "number" && matchCount > 0 && (

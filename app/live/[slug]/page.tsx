@@ -13,12 +13,13 @@ import { useStore } from "@/lib/store";
 export default function LiveHubPage() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useStore();
-  const { live, upcoming } = useLiveFeed();
+  const { live, watchLive, upcoming } = useLiveFeed();
   const platform = platformBySlug(slug);
   const category = CATEGORIES.find((item) => item.slug === slug);
+  const pool = platform?.kind === "watch" ? watchLive : live;
   const match = (stream: (typeof live)[number]) =>
     isPlatformSlug(slug) ? stream.platform === slug : stream.category === slug;
-  const onAir = live.filter(match).sort(byStartTime);
+  const onAir = pool.filter(match).sort(byStartTime);
   const nextUp = upcoming.filter(match).sort(byStartTime);
   const title = platform?.label ?? category?.label ?? slug;
   const blurb = platform?.blurb ?? category?.blurb ?? "";
@@ -39,7 +40,7 @@ export default function LiveHubPage() {
           <BrowseLinks />
         </div>
       </header>
-      {platform?.status === "coming-soon" ? (
+      {platform?.status === "coming-soon" && !onAir.length ? (
         <div className="rounded-3xl border border-dashed border-teal/30 bg-ink-900 p-8">
           <p className="font-display text-3xl">Coming next.</p>
           <p className="mt-3 max-w-xl text-paper-200/65">

@@ -33,7 +33,7 @@ export const PLATFORMS: PlatformInfo[] = [
     slug: "youtube",
     label: "YouTube Live",
     shortLabel: "YouTube",
-    status: "coming-soon",
+    status: "live",
     kind: "watch",
     blurb: "Creator rooms and watch-along lives. Jump in on YouTube — we do not treat these as shops.",
   },
@@ -90,12 +90,17 @@ export function platformHubUrl(platform: Platform) {
 const EBAY_EVENT_ID = /^[A-Za-z0-9]{10,}$/;
 const WHATNOT_LIVE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+const TIKTOK_HANDLE = /^[A-Za-z0-9._]{2,24}$/;
 
 export function isVerifiedLiveUrl(url?: string | null) {
   if (!url) return false;
   return (
     /whatnot\.com\/live\/[0-9a-f]{8}-[0-9a-f-]{27}/i.test(url) ||
-    /ebay\.[^/]+\/ebaylive\/events\/[A-Za-z0-9]+\/stream/i.test(url)
+    /ebay\.[^/]+\/ebaylive\/events\/[A-Za-z0-9]+\/stream/i.test(url) ||
+    /youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}/i.test(url) ||
+    /youtube\.com\/live\/[A-Za-z0-9_-]{11}/i.test(url) ||
+    /youtu\.be\/[A-Za-z0-9_-]{11}/i.test(url) ||
+    /tiktok\.com\/@[A-Za-z0-9._]+\/live/i.test(url)
   );
 }
 
@@ -131,6 +136,9 @@ export function outboundUrl(
     return platformHubUrl("youtube");
   }
 
+  if (TIKTOK_HANDLE.test(eventId.replace(/^@/, ""))) {
+    return `https://www.tiktok.com/@${eventId.replace(/^@/, "")}/live`;
+  }
   return platformHubUrl("tiktok");
 }
 

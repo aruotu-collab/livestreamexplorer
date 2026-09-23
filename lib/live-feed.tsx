@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ALL_STREAMS } from "./catalog";
 import { registerIndexedSellers } from "./live-index";
+import { isShopPlatform, isWatchPlatform } from "./platforms";
 import { APP_NOW, byStartTime, hourInZone, localDayStamp, withStatus } from "./time";
 import { DEFAULT_TIME_ZONE, countryForTimeZone, detectTimeZone } from "./zone";
 import type { LiveLot, Seller, Stream } from "./types";
@@ -22,6 +23,7 @@ type Feed = {
   discovered: Stream[];
   catalog: Stream[];
   live: Stream[];
+  watchLive: Stream[];
   soon: Stream[];
   upcoming: Stream[];
   tonight: Stream[];
@@ -66,7 +68,8 @@ export function LiveFeedProvider({ children }: { children: React.ReactNode }) {
         const rooms = data.streams ?? [];
         registerIndexedSellers(data.sellers ?? []);
         const liveRooms = rooms.filter((room) => room.status === "live");
-        const fresh = primed.current ? liveRooms.filter((room) => !seenIds.current.has(room.id)) : [];
+        const shopLiveRooms = liveRooms.filter((room) => isShopPlatform(room.platform));
+        const fresh = primed.current ? shopLiveRooms.filter((room) => !seenIds.current.has(room.id)) : [];
         for (const room of liveRooms) seenIds.current.add(room.id);
         primed.current = true;
         setIndexed(rooms);
@@ -120,9 +123,11 @@ export function LiveFeedProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<Feed>(() => {
     const indexedNow = indexed.map((stream) => withStatus(stream, clock));
-    const live = indexedNow
+    const allLive = indexedNow
       .filter((stream) => stream.status === "live")
       .sort((a, b) => (b.viewers ?? 0) - (a.viewers ?? 0));
+    const live = allLive.filter((stream) => isShopPlatform(stream.platform));
+    const watchLive = allLive.filter((stream) => isWatchPlatform(stream.platform));
     const hasEbayIndex = indexedNow.some((stream) => stream.platform === "ebay");
     const calendar = ALL_STREAMS.map((stream) => withStatus(stream, clock)).filter((stream) => {
       if (stream.status === "live") return false;
@@ -156,6 +161,7 @@ export function LiveFeedProvider({ children }: { children: React.ReactNode }) {
       discovered,
       catalog: merged,
       live,
+      watchLive,
       soon,
       upcoming,
       tonight,
