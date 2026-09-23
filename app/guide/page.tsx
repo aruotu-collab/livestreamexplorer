@@ -17,7 +17,7 @@ import {
   visibleGuideSlot,
 } from "@/lib/guide";
 import { useLiveFeed } from "@/lib/live-feed";
-import { isPlatformSlug, outboundCta, platformLabel } from "@/lib/platforms";
+import { isPlatformSlug, isShopPlatform, outboundCta, platformLabel } from "@/lib/platforms";
 import { useStore } from "@/lib/store";
 import { byStartTime, formatClock, isToday, msUntil } from "@/lib/time";
 import type { Stream } from "@/lib/types";
@@ -73,6 +73,7 @@ function GuideGrid() {
     return catalog
       .filter((stream) => {
         if (platform !== "all" && stream.platform !== platform) return false;
+        if (platform === "all" && !isShopPlatform(stream.platform)) return false;
         if (category !== "all" && stream.category !== category) return false;
         return true;
       })

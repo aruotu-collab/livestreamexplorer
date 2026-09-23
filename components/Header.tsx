@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { CATEGORIES, isCategorySlug } from "@/lib/catalog";
 import { useLiveFeed } from "@/lib/live-feed";
-import { PLATFORMS, isPlatformSlug, platformBySlug } from "@/lib/platforms";
+import { SHOP_PLATFORMS, WATCH_PLATFORMS, isPlatformSlug, platformBySlug } from "@/lib/platforms";
 import { isAdminEmail } from "@/lib/admin";
 import { isBrowsePath } from "@/lib/nav";
 import { Logo } from "./Logo";
@@ -62,9 +62,10 @@ export function Header() {
   const guideCategory = onGuide && isCategorySlug(categoryParam) ? categoryParam : undefined;
   const activePlatform = onGuide ? (guidePlatform ? platformBySlug(guidePlatform) : undefined) : routePlatform;
   const showBrowseChips = isBrowsePath(path);
-  const allPlatformsActive = onGuide
-    ? !guidePlatform
-    : pathMatches(path, "/") || pathMatches(path, "/tonight") || pathMatches(path, "/calendar") || pathMatches(path, "/items");
+  const onWatchHub = pathMatches(path, "/watch");
+  const watchMode = onWatchHub || activePlatform?.kind === "watch";
+  const shopMode = !watchMode;
+  const modePlatforms = watchMode ? WATCH_PLATFORMS : SHOP_PLATFORMS;
   const countSource = onGuide
     ? catalog.filter((stream) => !guidePlatform || stream.platform === guidePlatform)
     : live;
@@ -191,15 +192,25 @@ export function Header() {
       <nav ref={platformRow} className="category-scroll mx-auto flex max-w-6xl gap-2 px-4 py-2">
         <Link
           href={onGuide ? guideHref("all", guideCategory) : "/"}
-          aria-current={allPlatformsActive ? "page" : undefined}
+          aria-current={shopMode && !activePlatform ? "page" : undefined}
           className={`chip shrink-0 ${
-            allPlatformsActive ? "border-teal bg-teal text-ink-950" : "hover:border-teal/40"
+            shopMode ? "border-teal bg-teal text-ink-950" : "hover:border-teal/40"
           }`}
         >
-          All platforms
+          Shop live
         </Link>
-        {PLATFORMS.map((platform) => {
-          const href = onGuide ? guideHref(platform.slug, guideCategory) : `/live/${platform.slug}`;
+        <Link
+          href="/watch"
+          aria-current={onWatchHub ? "page" : undefined}
+          className={`chip shrink-0 ${
+            watchMode ? "border-teal bg-teal text-ink-950" : "hover:border-teal/40"
+          }`}
+        >
+          Watch live
+        </Link>
+        {modePlatforms.map((platform) => {
+          const href =
+            onGuide && platform.kind === "shop" ? guideHref(platform.slug, guideCategory) : `/live/${platform.slug}`;
           const active = onGuide ? guidePlatform === platform.slug : pathMatches(path, `/live/${platform.slug}`);
           const soon = platform.status === "coming-soon";
           return (
@@ -222,6 +233,7 @@ export function Header() {
         })}
       </nav>
       </div>
+      {shopMode ? (
       <div className="border-t border-white/5">
       <nav ref={categoryRow} className="category-scroll mx-auto flex max-w-6xl gap-2 px-4 py-2">
         {onGuide ? (
@@ -255,6 +267,7 @@ export function Header() {
         })}
       </nav>
       </div>
+      ) : null}
       </>
       ) : null}
     </header>

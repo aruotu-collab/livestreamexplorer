@@ -6,6 +6,7 @@ export function isBrowsePath(path: string) {
     current === "/tonight" ||
     current === "/calendar" ||
     current === "/items" ||
+    current === "/watch" ||
     current.startsWith("/live/")
   );
 }

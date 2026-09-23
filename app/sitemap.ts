@@ -21,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/tonight", { changeFrequency: "hourly", priority: 0.8 }),
     page("/calendar", { changeFrequency: "daily", priority: 0.7 }),
     page("/items", { changeFrequency: "hourly", priority: 0.8 }),
+    page("/watch", { changeFrequency: "hourly", priority: 0.7 }),
     page("/search", { changeFrequency: "weekly", priority: 0.5 }),
     page("/pricing", { changeFrequency: "monthly", priority: 0.4 }),
     page("/about", { changeFrequency: "monthly", priority: 0.4 }),

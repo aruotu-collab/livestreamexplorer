@@ -13,6 +13,8 @@ export function Footer() {
         </div>
         <div className="space-y-2 text-sm text-paper-200/70">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper-200/40">Explore</p>
+          <Link className="block hover:text-paper-50" href="/">Shop live</Link>
+          <Link className="block hover:text-paper-50" href="/watch">Watch live</Link>
           <Link className="block hover:text-paper-50" href="/guide">The Guide</Link>
           <Link className="block hover:text-paper-50" href="/tonight">Tonight</Link>
           <Link className="block hover:text-paper-50" href="/calendar">7-day calendar</Link>

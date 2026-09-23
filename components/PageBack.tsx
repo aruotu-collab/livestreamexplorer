@@ -32,6 +32,7 @@ const BROWSE = [
   { href: "/tonight", id: "tonight", label: "Tonight" },
   { href: "/calendar", id: "calendar", label: "Calendar" },
   { href: "/items", id: "items", label: "Items" },
+  { href: "/watch", id: "watch", label: "Watch live" },
   { href: "/search", id: "search", label: "Search" },
 ] as const;
 

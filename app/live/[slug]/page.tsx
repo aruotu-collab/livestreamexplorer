@@ -25,10 +25,13 @@ export default function LiveHubPage() {
 
   return (
     <div className="space-y-8">
-      <PageBack href="/tonight" label="Back to tonight" />
+      <PageBack
+        href={platform?.kind === "watch" ? "/watch" : "/tonight"}
+        label={platform?.kind === "watch" ? "Back to Watch live" : "Back to tonight"}
+      />
       <header>
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">
-          {platform ? "Platform" : "Public calendar page"}
+          {platform?.kind === "watch" ? "Watch live" : platform ? "Shop live" : "Public calendar page"}
         </p>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl">{title} livestreams</h1>
         <p className="mt-3 max-w-2xl text-paper-200/65">{blurb}</p>
@@ -40,10 +43,12 @@ export default function LiveHubPage() {
         <div className="rounded-3xl border border-dashed border-teal/30 bg-ink-900 p-8">
           <p className="font-display text-3xl">Coming next.</p>
           <p className="mt-3 max-w-xl text-paper-200/65">
-            {title} is on the map. We will index public rooms the same way as eBay Live and Whatnot — then send you out to the platform. No marketplace here.
+            {platform.kind === "watch"
+              ? `${title} is watch live, not a shop. We will index who is on camera and send you out to watch. No item calendar, no lots.`
+              : `${title} is on the map. We will index public rooms the same way as eBay Live and Whatnot — then send you out to the platform. No marketplace here.`}
           </p>
-          <Link href="/" className="btn-gold mt-6">
-            Browse live platforms
+          <Link href={platform.kind === "watch" ? "/watch" : "/"} className="btn-gold mt-6">
+            {platform.kind === "watch" ? "Back to Watch live" : "Browse Shop live"}
           </Link>
         </div>
       ) : (

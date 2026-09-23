@@ -1,6 +1,7 @@
 import type { Platform } from "./types";
 
 export type PlatformStatus = "live" | "coming-soon";
+export type PlatformKind = "shop" | "watch";
 
 export interface PlatformInfo {
   slug: Platform;
@@ -8,6 +9,7 @@ export interface PlatformInfo {
   shortLabel: string;
   blurb: string;
   status: PlatformStatus;
+  kind: PlatformKind;
 }
 
 export const PLATFORMS: PlatformInfo[] = [
@@ -16,6 +18,7 @@ export const PLATFORMS: PlatformInfo[] = [
     label: "eBay Live",
     shortLabel: "eBay",
     status: "live",
+    kind: "shop",
     blurb: "Scheduled eBay Live events with stable event URLs.",
   },
   {
@@ -23,6 +26,7 @@ export const PLATFORMS: PlatformInfo[] = [
     label: "Whatnot",
     shortLabel: "Whatnot",
     status: "live",
+    kind: "shop",
     blurb: "Seller shows indexed from public upcoming-show structure.",
   },
   {
@@ -30,18 +34,30 @@ export const PLATFORMS: PlatformInfo[] = [
     label: "YouTube Live",
     shortLabel: "YouTube",
     status: "coming-soon",
-    blurb: "YouTube Live shops and creator rooms. Watch Agents will open on YouTube — intelligence stays here.",
+    kind: "watch",
+    blurb: "Creator rooms and watch-along lives. Jump in on YouTube — we do not treat these as shops.",
   },
   {
     slug: "tiktok",
     label: "TikTok Live",
     shortLabel: "TikTok",
     status: "coming-soon",
-    blurb: "TikTok LIVE shopping rooms. Same buyer layer: find the show, then jump in on TikTok.",
+    kind: "watch",
+    blurb: "Creators on camera. Find who is live, then watch on TikTok. Not a live shop.",
   },
 ];
 
-export const LIVE_PLATFORMS = PLATFORMS.filter((platform) => platform.status === "live");
+export const SHOP_PLATFORMS = PLATFORMS.filter((platform) => platform.kind === "shop");
+export const WATCH_PLATFORMS = PLATFORMS.filter((platform) => platform.kind === "watch");
+export const LIVE_PLATFORMS = SHOP_PLATFORMS.filter((platform) => platform.status === "live");
+
+export function isShopPlatform(slug: string) {
+  return SHOP_PLATFORMS.some((platform) => platform.slug === slug);
+}
+
+export function isWatchPlatform(slug: string) {
+  return WATCH_PLATFORMS.some((platform) => platform.slug === slug);
+}
 
 export function platformBySlug(slug: string) {
   return PLATFORMS.find((platform) => platform.slug === slug);
@@ -67,7 +83,7 @@ export function livePlatformSentence() {
 export function platformHubUrl(platform: Platform) {
   if (platform === "ebay") return "https://www.ebay.co.uk/ebaylive";
   if (platform === "whatnot") return "https://www.whatnot.com/";
-  if (platform === "youtube") return "https://www.youtube.com/";
+  if (platform === "youtube") return "https://www.youtube.com/live";
   return "https://www.tiktok.com/live";
 }
 
@@ -86,6 +102,7 @@ export function isVerifiedLiveUrl(url?: string | null) {
 export function outboundCta(platform: Platform, opts?: { live?: boolean; url?: string | null }) {
   const name = platformLabel(platform, "short");
   if (opts?.live && isVerifiedLiveUrl(opts.url)) return `Jump in now on ${name}`;
+  if (isWatchPlatform(platform)) return `Watch on ${name}`;
   return `Find live rooms on ${name}`;
 }
 
